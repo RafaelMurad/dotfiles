@@ -1,0 +1,12 @@
+# Sensitive files - review before committing
+.ssh/id_*
+.ssh/*_rsa*
+.gnupg/private-keys-v1.d/
+*.pem
+*.key
+.npmrc
+.git-credentials
+
+# Large/temp files
+.DS_Store
+*.log

@@ -1,0 +1,36 @@
+{
+    "workbench.colorTheme": "Dracula Theme",
+    "git.confirmSync": false,
+    "editor.mouseWheelZoom": true,
+    "chat.agent.maxRequests": 150,
+    "diffEditor.renderSideBySide": true,
+    "chat.tools.terminal.autoApprove": {
+        "yarn workspace": true,
+        "git --no-pager log --oneline -n 15": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "git --no-pager show 4828fb5c15 -- checkout/tests/unit/component/shipping-time/shipping-time-datepicker.test.jsx": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "git --no-pager show --name-status --pretty=\"format:%H %s\" e7cdba45dc b5b6c5bd2a 48abe3aa39 ea01ad36ce": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "git --no-pager log --oneline 28e4349c0261832506c474ef0c12d9b64f5dddaf..HEAD": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "sed": true,
+        "yarn jest": true,
+        "yarn test": true
+    },
+    "extensions.ignoreRecommendations": true,
+    "gitlens.ai.model": "vscode",
+    "gitlens.ai.vscode.model": "copilot:gpt-4.1",
+    "chat.checkpoints.showFileChanges": true,
+    "chat.editing.confirmEditRequestRemoval": false,
+    "chat.editor.fontSize": 16,
+    "chat.editor.lineHeight": 1
+}
