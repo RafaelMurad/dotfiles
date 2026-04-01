@@ -13,38 +13,19 @@
   "chat.editing.confirmEditRequestRemoval": false,
   "chat.agent.maxRequests": 1000,
   "chat.mcp.gallery.enabled": true,
-  "chat.instructionsFilesLocations": {
-    ".github/copilot-instructions.md": true
-  },
-  "chat.viewSessions.orientation": "stacked",
   "github.copilot.nextEditSuggestions.enabled": true,
   "gitlens.ai.model": "vscode",
   "gitlens.ai.vscode.model": "copilot:gpt-4.1",
   "settingsSync.ignoredExtensions": ["claude-code"],
-  "claudeCode.selectedModel": "opus",
-  "claudeCode.preferredLocation": "panel",
-  "git.ignoreRebaseWarning": true,
+  "claudeCode.selectedModel": "default",
   "chat.tools.terminal.autoApprove": {
     "npm run build": true,
     "pnpm": true,
     "git rev-parse": true,
     "awk": true,
-    "npm test": true,
-    "yarn test": true,
-    "uniq": true,
-    "npm run validate": true,
-    "npx": true,
-    "npm run lint": true,
-    "gh": true,
-    "sed": true,
-    "npm run type-check": true,
-    "npm ci": true,
-    "npm run format:check": true
+    "npm test": true
   },
-  "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "githubPullRequests.pullBranch": "never",
-  "githubPullRequests.createOnPublishBranch": "never",
-  "workbench.secondarySideBar.defaultVisibility": "visible"
+  "git.ignoreRebaseWarning": true,
+  "git.autofetch": true,
+  "diffEditor.maxComputationTime": 0
 }

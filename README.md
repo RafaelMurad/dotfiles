@@ -1,81 +1,69 @@
 # Dotfiles
 
-My development environment configuration.
+Personal development environment configuration.
 
 ## Fresh Machine Setup
 
-### 1. Install Xcode Command Line Tools
 ```bash
+# 1. Install Xcode CLI tools
 xcode-select --install
-```
 
-### 2. Clone this repo
-```bash
-cd ~
-git clone <your-repo-url> dotfiles
-cd dotfiles
-```
+# 2. Clone this repo
+git clone git@github.com:RafaelMurad/dotfiles.git ~/dotfiles
+cd ~/dotfiles
 
-### 3. Install Homebrew and essential tools
-```bash
-./install-homebrew.sh
-```
+# 3. Install tools (Homebrew, packages, Volta, Oh My Zsh)
+./install.sh
 
-### 4. Setup dotfiles
-```bash
-./setup-dotfiles.sh
-```
+# 4. Link dotfiles, generate SSH key, configure environment
+./setup.sh
 
-### 5. Install oh-my-zsh (if you use it)
-```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-```
-
-### 6. Generate new SSH keys
-```bash
-ssh-keygen -t ed25519 -C "your_email@example.com"
-# Add to GitHub/GitLab
-cat ~/.ssh/id_ed25519.pub | pbcopy
-```
-
-### 7. Authenticate GitHub CLI (if you use it)
-```bash
-brew install gh
-gh auth login
-```
-
-### 8. Restart terminal
-```bash
+# 5. Restart terminal
 exec zsh
 ```
 
-## Essential Tools (Jesse's recommendations)
-- **Homebrew**: Package manager
-- **Volta**: Node version manager (replaces nvm)
-- **Git**: Version control
-- **fzf**: Fuzzy finder
-- **btop**: System monitor
-- **Podman**: Container runtime
-- **Starship**: Cross-shell prompt
+## What's Included
 
-## Copying Projects
+- **Shell**: zsh + Oh My Zsh, pnpm, Google Cloud SDK
+- **Node**: Volta (node, pnpm, yarn, vercel, playwright-mcp, confluence-cli)
+- **Git**: sensible defaults, useful aliases, LFS support
+- **Editors**: VS Code + Cursor (settings, keybindings, extensions)
+- **Tools**: Homebrew Brewfile with all formulae, casks, and extensions
+- **AI**: OpenCode, Ollama, Claude Code, GitHub Copilot
+- **SSH**: ed25519 key generation + GitHub config
 
-If you want to transfer your projects folder:
-```bash
-# On old machine
-rsync -av --progress ~/jet your-new-machine:~/
+## Work Profile
 
-# Or use external drive
-cp -r ~/jet /Volumes/ExternalDrive/
+Run `./setup-work-profile.sh` anytime to add a work identity:
+
+- Separate git identity (auto-applied by project directory via `includeIf`)
+- Separate SSH key for work Git host
+- Handles same-host (github.com) and enterprise host scenarios
+- Optional: GitHub CLI auth, VS Code profile alias
+
+## Repo Structure
+
+```
+dotfiles/
+├── .gitconfig              # Git config (personal identity default)
+├── .gitignore              # Global gitignore rules
+├── .ssh/config             # SSH host configuration
+├── .zprofile               # Homebrew env init
+├── .zshenv                 # Volta PATH setup
+├── .zshrc                  # Shell config (Oh My Zsh, aliases, tools)
+├── Brewfile                # Homebrew packages, casks, and VS Code extensions
+├── cursor/settings.json    # Cursor editor settings
+├── gh/config.yml           # GitHub CLI preferences
+├── install.sh              # Install Homebrew + all tools
+├── setup.sh                # Symlink dotfiles + SSH key + work profile prompt
+├── setup-work-profile.sh   # Interactive work profile wizard
+└── vscode/
+    ├── keybindings.json    # VS Code keybindings
+    └── settings.json       # VS Code settings
 ```
 
-## VS Code Settings Sync
-
-VS Code settings sync to your GitHub account automatically.
-Just sign in to VS Code on the new machine.
-
 ## What's NOT in this repo
-- SSH private keys (regenerate on new machine)
-- NPM tokens (.npmrc) - set these up fresh
-- Any secrets or API keys
+
+- SSH private keys (generated during setup)
+- Auth tokens / API keys
 - node_modules or project builds

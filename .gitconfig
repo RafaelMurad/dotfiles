@@ -1,11 +1,22 @@
 [user]
-	email = rafael.murad@justeattakeaway.com
+	email = rflmurad@gmail.com
 	name = Rafael Murad
 [sequence]
 	editor = code --wait --reuse-window
-
 [push]
 	autoSetupRemote = true
-
 [pull]
 	rebase = true
+[init]
+	defaultBranch = main
+[alias]
+	branch-clean = "!f() { git checkout main && git pull origin main && git checkout -b \"$1\"; }; f"
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+
+# Work profile override (added by setup-work-profile.sh):
+# [includeIf "gitdir:~/work/"]
+#     path = ~/.gitconfig-work
