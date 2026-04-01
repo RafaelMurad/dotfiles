@@ -1,0 +1,46 @@
+# Aliases
+
+# ── Navigation ──────────────────────────────────────────
+alias ..="cd .."
+alias ...="cd ../.."
+alias ....="cd ../../.."
+alias ~="cd ~"
+alias -- -="cd -"
+
+# ── Listings ────────────────────────────────────────────
+alias ll="ls -lAFh"
+alias la="ls -AF"
+alias lsd="ls -lF | grep --color=never '^d'"
+
+# ── Git ─────────────────────────────────────────────────
+alias gs="git status"
+alias gd="git diff"
+alias gds="git diff --staged"
+alias gp="git push"
+alias gl="git pull"
+alias gc="git commit"
+alias gca="git commit --amend"
+alias gco="git checkout"
+alias gb="git branch"
+alias glog="git log --oneline --graph --decorate -20"
+
+# ── Tools ───────────────────────────────────────────────
+alias oc="opencode"
+alias code-personal="code --profile \"personal\""
+
+# ── Network ─────────────────────────────────────────────
+alias myip="curl -s https://ifconfig.me"
+alias localip="ipconfig getifaddr en0"
+alias flushdns="sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder && echo 'DNS flushed'"
+
+# ── System ──────────────────────────────────────────────
+alias afk="pmset displaysleepnow"
+alias emptytrash="sudo rm -rf ~/.Trash/*; echo 'Trash emptied'"
+alias cleanup="find . -type f -name '.DS_Store' -ls -delete"
+alias path='echo -e ${PATH//:/\\n}'
+alias reload="exec zsh"
+
+# ── Shortcuts ───────────────────────────────────────────
+alias hosts="sudo $EDITOR /etc/hosts"
+alias week="date +%V"
+alias timer="echo 'Timer started. Stop with Ctrl-D.' && date && time cat && date"

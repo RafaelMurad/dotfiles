@@ -1,0 +1,272 @@
+#!/usr/bin/env zsh
+# macOS defaults — opinionated system preferences
+# Run: ./.macos
+# Inspired by mathiasbynens/dotfiles, driesvints/dotfiles
+set -e
+
+bold="\033[1m"
+dim="\033[2m"
+green="\033[32m"
+blue="\033[34m"
+reset="\033[0m"
+
+section() { echo "\n${bold}${blue}$1${reset}" }
+ok()      { echo "  ${green}✓${reset} $1" }
+
+echo ""
+echo "${bold}  macOS Defaults${reset}"
+echo "${dim}  Applying system preferences...${reset}"
+
+# Close System Preferences to prevent overriding changes
+osascript -e 'tell application "System Preferences" to quit' 2>/dev/null || true
+osascript -e 'tell application "System Settings" to quit' 2>/dev/null || true
+
+# Ask for sudo upfront and keep alive
+sudo -v
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+
+# ── General UI ──────────────────────────────────────────
+section "General UI"
+
+# Expand save panel by default
+defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode -bool true
+defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode2 -bool true
+ok "Expand save panels"
+
+# Expand print panel by default
+defaults write NSGlobalDomain PMPrintingExpandedStateForPrint -bool true
+defaults write NSGlobalDomain PMPrintingExpandedStateForPrint2 -bool true
+ok "Expand print panels"
+
+# Save to disk (not iCloud) by default
+defaults write NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false
+ok "Save to disk by default"
+
+# Disable the crash reporter dialog
+defaults write com.apple.CrashReporter DialogType -string "none"
+ok "Disable crash reporter dialog"
+
+# Disable automatic capitalization, smart dashes, smart quotes, auto-correct
+defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
+defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
+defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
+defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
+defaults write NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled -bool false
+ok "Disable auto-correct, smart quotes, smart dashes, auto-capitalization"
+
+# ── Keyboard ────────────────────────────────────────────
+section "Keyboard"
+
+# Fast key repeat rate
+defaults write NSGlobalDomain KeyRepeat -int 2
+ok "Fast key repeat rate"
+
+# Short delay until key repeat
+defaults write NSGlobalDomain InitialKeyRepeat -int 15
+ok "Short initial key repeat delay"
+
+# Disable press-and-hold for keys (enables key repeat everywhere)
+defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
+ok "Key repeat instead of press-and-hold"
+
+# ── Trackpad ────────────────────────────────────────────
+section "Trackpad"
+
+# Tap to click
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+defaults write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+ok "Tap to click"
+
+# ── Finder ──────────────────────────────────────────────
+section "Finder"
+
+# Show all filename extensions
+defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+ok "Show all file extensions"
+
+# Show hidden files
+defaults write com.apple.finder AppleShowAllFiles -bool true
+ok "Show hidden files"
+
+# Show path bar
+defaults write com.apple.finder ShowPathbar -bool true
+ok "Show path bar"
+
+# Show status bar
+defaults write com.apple.finder ShowStatusBar -bool true
+ok "Show status bar"
+
+# Keep folders on top when sorting by name
+defaults write com.apple.finder _FXSortFoldersFirst -bool true
+ok "Folders on top"
+
+# Search the current folder by default
+defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+ok "Search current folder by default"
+
+# Disable warning when changing file extension
+defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+ok "Disable extension change warning"
+
+# Avoid creating .DS_Store on network or USB volumes
+defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
+ok "No .DS_Store on network/USB"
+
+# Use list view in all Finder windows by default
+defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
+ok "Default to list view"
+
+# Show the ~/Library folder
+chflags nohidden ~/Library 2>/dev/null || true
+ok "Show ~/Library"
+
+# Show the /Volumes folder
+sudo chflags nohidden /Volumes 2>/dev/null || true
+ok "Show /Volumes"
+
+# New Finder windows open home directory
+defaults write com.apple.finder NewWindowTarget -string "PfHm"
+defaults write com.apple.finder NewWindowTargetPath -string "file://${HOME}/"
+ok "New windows open home directory"
+
+# ── Dock ────────────────────────────────────────────────
+section "Dock"
+
+# Set icon size
+defaults write com.apple.dock tilesize -int 48
+ok "Icon size 48px"
+
+# Minimize with scale effect
+defaults write com.apple.dock mineffect -string "scale"
+ok "Scale minimize effect"
+
+# Auto-hide the Dock
+defaults write com.apple.dock autohide -bool true
+ok "Auto-hide Dock"
+
+# Remove auto-hide delay
+defaults write com.apple.dock autohide-delay -float 0
+ok "No auto-hide delay"
+
+# Speed up auto-hide animation
+defaults write com.apple.dock autohide-time-modifier -float 0.3
+ok "Fast auto-hide animation"
+
+# Don't show recent applications
+defaults write com.apple.dock show-recents -bool false
+ok "No recent apps in Dock"
+
+# Don't automatically rearrange Spaces based on most recent use
+defaults write com.apple.dock mru-spaces -bool false
+ok "Don't rearrange Spaces"
+
+# Group windows by application in Mission Control
+defaults write com.apple.dock expose-group-apps -bool true
+ok "Group windows by app"
+
+# Dock apps (requires dockutil)
+if command -v dockutil &>/dev/null; then
+  echo ""
+  dockutil --remove all --no-restart 2>/dev/null
+  ok "Cleared Dock"
+
+  dockutil --add /Applications/Ghostty.app --no-restart 2>/dev/null
+  dockutil --add "/Applications/Visual Studio Code.app" --no-restart 2>/dev/null
+  dockutil --add /Applications/Cursor.app --no-restart 2>/dev/null
+  dockutil --add "/Applications/Google Chrome.app" --no-restart 2>/dev/null
+  dockutil --add /Applications/Figma.app --no-restart 2>/dev/null
+  dockutil --add /Applications/Slack.app --no-restart 2>/dev/null
+  dockutil --add /Applications/Spotify.app 2>/dev/null
+  ok "Dock apps: Ghostty, VS Code, Cursor, Chrome, Figma, Slack, Spotify"
+else
+  echo "  ${dim}· dockutil not found — install via Brewfile to set Dock apps${reset}"
+fi
+
+# ── Screenshots ─────────────────────────────────────────
+section "Screenshots"
+
+# Save screenshots to ~/Screenshots
+mkdir -p "$HOME/Screenshots"
+defaults write com.apple.screencapture location -string "$HOME/Screenshots"
+ok "Save to ~/Screenshots"
+
+# Save in PNG format
+defaults write com.apple.screencapture type -string "png"
+ok "PNG format"
+
+# Disable shadow in screenshots
+defaults write com.apple.screencapture disable-shadow -bool true
+ok "No shadow"
+
+# ── Safari ──────────────────────────────────────────────
+section "Safari"
+
+# Enable Develop menu and Web Inspector
+defaults write com.apple.Safari IncludeDevelopMenu -bool true
+defaults write com.apple.Safari WebKitDeveloperExtrasEnabledPreferenceKey -bool true
+defaults write com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled -bool true
+ok "Develop menu + Web Inspector"
+
+# Enable Do Not Track
+defaults write com.apple.Safari SendDoNotTrackHTTPHeader -bool true
+ok "Do Not Track"
+
+# Show full URL in address bar
+defaults write com.apple.Safari ShowFullURLInSmartSearchField -bool true
+ok "Show full URL"
+
+# ── Activity Monitor ────────────────────────────────────
+section "Activity Monitor"
+
+# Show all processes
+defaults write com.apple.ActivityMonitor ShowCategory -int 0
+ok "Show all processes"
+
+# Sort by CPU usage
+defaults write com.apple.ActivityMonitor SortColumn -string "CPUUsage"
+defaults write com.apple.ActivityMonitor SortDirection -int 0
+ok "Sort by CPU"
+
+# ── TextEdit ────────────────────────────────────────────
+section "TextEdit"
+
+# Use plain text by default
+defaults write com.apple.TextEdit RichText -int 0
+ok "Plain text default"
+
+# Open and save as UTF-8
+defaults write com.apple.TextEdit PlainTextEncoding -int 4
+defaults write com.apple.TextEdit PlainTextEncodingForWrite -int 4
+ok "UTF-8 encoding"
+
+# ── Security ────────────────────────────────────────────
+section "Security"
+
+# Require password immediately after sleep or screen saver
+defaults write com.apple.screensaver askForPassword -int 1
+defaults write com.apple.screensaver askForPasswordDelay -int 0
+ok "Password immediately after sleep"
+
+# ── Disk Images ─────────────────────────────────────────
+section "Disk Images"
+
+# Disable disk image verification
+defaults write com.apple.frameworks.diskimages skip-verify -bool true
+defaults write com.apple.frameworks.diskimages skip-verify-locked -bool true
+defaults write com.apple.frameworks.diskimages skip-verify-remote -bool true
+ok "Skip disk image verification"
+
+# ── Apply ───────────────────────────────────────────────
+echo ""
+echo "${dim}  Restarting affected apps...${reset}"
+
+for app in "Finder" "Dock" "SystemUIServer" "cfprefsd"; do
+  killall "$app" &>/dev/null || true
+done
+
+echo ""
+echo "${green}${bold}  macOS defaults applied!${reset}"
+echo "${dim}  Some changes require a logout/restart to take effect.${reset}"
+echo ""

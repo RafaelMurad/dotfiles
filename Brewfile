@@ -11,6 +11,11 @@ brew "btop"                                   # Terminal-based resource monitor 
 brew "ollama"                                 # Run large language models locally
 brew "anomalyco/tap/opencode"                 # AI coding agent for the terminal
 
+# Utilities
+brew "dockutil"                               # Manage macOS Dock items from the command line
+brew "shellcheck"                             # Static analysis tool for shell scripts
+brew "tree"                                   # Display directory structure as a tree
+
 # Apps
 cask "claude-code"                            # Anthropic's Claude AI terminal assistant
 cask "cursor"                                 # AI-powered code editor (VS Code fork)

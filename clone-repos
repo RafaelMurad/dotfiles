@@ -1,0 +1,63 @@
+#!/usr/bin/env zsh
+# Clone all personal GitHub repos into ~/code
+set -e
+
+REPOS_DIR="$HOME/code"
+
+# Colors
+bold="\033[1m"
+dim="\033[2m"
+green="\033[32m"
+blue="\033[34m"
+yellow="\033[33m"
+red="\033[31m"
+reset="\033[0m"
+
+ok()   { echo "  ${green}✓${reset} $1" }
+skip() { echo "  ${dim}· $1 (already cloned)${reset}" }
+info() { echo "  ${yellow}→${reset} $1" }
+fail() { echo "  ${red}✗${reset} $1" }
+
+echo ""
+echo "${bold}  Clone Personal Repos${reset}"
+echo "${dim}  github.com/RafaelMurad → ~/code${reset}"
+echo ""
+
+# Check gh is authenticated
+if ! gh auth status &>/dev/null 2>&1; then
+  fail "GitHub CLI not authenticated. Run: gh auth login"
+  exit 1
+fi
+
+mkdir -p "$REPOS_DIR"
+
+# Fetch all source (non-fork), non-archived repos
+repos=$(gh repo list RafaelMurad \
+  --source \
+  --no-archived \
+  --json name,sshUrl \
+  --limit 100 \
+  --jq '.[] | "\(.name) \(.sshUrl)"')
+
+if [[ -z "$repos" ]]; then
+  info "No repos found"
+  exit 0
+fi
+
+count=0
+skipped=0
+
+while IFS=' ' read -r name url; do
+  if [[ -d "$REPOS_DIR/$name" ]]; then
+    skip "$name"
+    ((skipped++))
+  else
+    git clone --quiet "$url" "$REPOS_DIR/$name"
+    ok "$name"
+    ((count++))
+  fi
+done <<< "$repos"
+
+echo ""
+echo "${green}${bold}  Done!${reset} ${dim}Cloned $count repo(s), skipped $skipped.${reset}"
+echo ""

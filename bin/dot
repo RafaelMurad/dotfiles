@@ -1,0 +1,67 @@
+#!/usr/bin/env zsh
+# dot — update everything
+# Usage: dot [--macos]
+set -e
+
+DOTFILES_DIR="$HOME/dotfiles"
+
+# Colors
+bold="\033[1m"
+dim="\033[2m"
+green="\033[32m"
+blue="\033[34m"
+yellow="\033[33m"
+reset="\033[0m"
+
+step()  { echo "\n${bold}${blue}[$1]${reset} ${bold}$2${reset}" }
+ok()    { echo "  ${green}✓${reset} $1" }
+info()  { echo "  ${yellow}→${reset} $1" }
+
+echo ""
+echo "${bold}  Updating dev environment${reset}"
+echo ""
+
+# ── 1. Pull dotfiles ────────────────────────────────────
+step 1 "Dotfiles"
+git -C "$DOTFILES_DIR" pull --quiet
+ok "Pulled latest"
+
+# ── 2. Homebrew ─────────────────────────────────────────
+step 2 "Homebrew"
+brew update --quiet
+brew upgrade --quiet
+brew bundle --file="$DOTFILES_DIR/Brewfile" --quiet
+brew cleanup --quiet
+ok "Updated + cleaned"
+
+# ── 3. Volta globals ───────────────────────────────────
+step 3 "Volta globals"
+volta install node@lts 2>/dev/null
+ok "Node LTS"
+
+for pkg in pnpm yarn vercel playwright-mcp confluence-cli; do
+  volta install "$pkg" 2>/dev/null
+  ok "$pkg"
+done
+
+# ── 4. Oh My Zsh ────────────────────────────────────────
+step 4 "Oh My Zsh"
+if [[ -d "$HOME/.oh-my-zsh" ]]; then
+  env ZSH="$HOME/.oh-my-zsh" zsh -f "$HOME/.oh-my-zsh/tools/upgrade.sh" 2>/dev/null || true
+  ok "Updated"
+else
+  info "Not installed — skipping"
+fi
+
+# ── 5. macOS defaults (optional) ────────────────────────
+if [[ "$1" == "--macos" ]]; then
+  step 5 "macOS defaults"
+  "$DOTFILES_DIR/.macos"
+  ok "Applied"
+fi
+
+# ── Done ─────────────────────────────────────────────────
+echo ""
+echo "${green}${bold}  Everything up to date!${reset}"
+echo "${dim}  Restart your terminal: exec zsh${reset}"
+echo ""

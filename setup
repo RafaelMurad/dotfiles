@@ -1,6 +1,14 @@
 #!/usr/bin/env zsh
 set -e
 
+# ── Remote bootstrap ───────────────────────────────────
+# Supports: curl -fsSL https://raw.githubusercontent.com/RafaelMurad/dotfiles/main/setup | zsh
+if [[ ! -d "$HOME/dotfiles/.git" ]]; then
+  echo "Cloning dotfiles..."
+  git clone https://github.com/RafaelMurad/dotfiles.git "$HOME/dotfiles"
+  exec "$HOME/dotfiles/setup"
+fi
+
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Colors
@@ -83,10 +91,12 @@ fi
 # ── 5. Dotfiles ─────────────────────────────────────────
 step 5 "Symlink dotfiles"
 
-link_file "$DOTFILES_DIR/.zshrc"    "$HOME/.zshrc"
-link_file "$DOTFILES_DIR/.zprofile" "$HOME/.zprofile"
-link_file "$DOTFILES_DIR/.zshenv"   "$HOME/.zshenv"
-link_file "$DOTFILES_DIR/.gitconfig" "$HOME/.gitconfig"
+link_file "$DOTFILES_DIR/.zshrc"      "$HOME/.zshrc"
+link_file "$DOTFILES_DIR/.zprofile"   "$HOME/.zprofile"
+link_file "$DOTFILES_DIR/.zshenv"     "$HOME/.zshenv"
+link_file "$DOTFILES_DIR/.gitconfig"  "$HOME/.gitconfig"
+link_file "$DOTFILES_DIR/.aliases"    "$HOME/.aliases"
+link_file "$DOTFILES_DIR/.functions"  "$HOME/.functions"
 
 link_file "$DOTFILES_DIR/.gitignore" "$HOME/.gitignore_global"
 git config --global core.excludesfile "$HOME/.gitignore_global"
@@ -135,8 +145,19 @@ else
   ok "Authenticated"
 fi
 
-# ── 9. Work profile ─────────────────────────────────────
-step 9 "Work profile"
+# ── 9. macOS defaults ───────────────────────────────────
+step 9 "macOS defaults"
+echo ""
+read -q "REPLY?  Apply macOS system preferences? (y/n) "
+echo ""
+if [[ "$REPLY" == "y" ]]; then
+  "$DOTFILES_DIR/.macos"
+else
+  info "Skipped — run ${bold}./.macos${reset} anytime"
+fi
+
+# ── 10. Work profile ────────────────────────────────────
+step 10 "Work profile"
 echo ""
 read -q "REPLY?  Set up a work profile now? (y/n) "
 echo ""

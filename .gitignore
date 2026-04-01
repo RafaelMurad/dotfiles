@@ -7,6 +7,9 @@
 .npmrc
 .git-credentials
 
+# Machine-local overrides (secrets, tokens, env vars)
+.extra
+
 # Large/temp files
 .DS_Store
 *.log
