@@ -29,5 +29,3 @@ fi
 
 # Aliases
 alias oc="opencode"
-
-# Work profile aliases (added by setup-work-profile.sh)

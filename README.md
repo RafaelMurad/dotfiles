@@ -2,68 +2,44 @@
 
 Personal development environment configuration.
 
-## Fresh Machine Setup
+## Setup
 
 ```bash
-# 1. Install Xcode CLI tools
 xcode-select --install
-
-# 2. Clone this repo
 git clone git@github.com:RafaelMurad/dotfiles.git ~/dotfiles
-cd ~/dotfiles
-
-# 3. Install tools (Homebrew, packages, Volta, Oh My Zsh)
-./install.sh
-
-# 4. Link dotfiles, generate SSH key, configure environment
-./setup.sh
-
-# 5. Restart terminal
-exec zsh
+~/dotfiles/setup
 ```
 
-## What's Included
-
-- **Shell**: zsh + Oh My Zsh, pnpm, Google Cloud SDK
-- **Node**: Volta (node, pnpm, yarn, vercel, playwright-mcp, confluence-cli)
-- **Git**: sensible defaults, useful aliases, LFS support
-- **Editors**: VS Code + Cursor (settings, keybindings, extensions)
-- **Tools**: Homebrew Brewfile with all formulae, casks, and extensions
-- **AI**: OpenCode, Ollama, Claude Code, GitHub Copilot
-- **SSH**: ed25519 key generation + GitHub config
+That's it. The `setup` script handles everything:
+1. Installs Homebrew + all packages from `Brewfile`
+2. Installs Volta, Node LTS, pnpm, yarn, vercel, playwright-mcp, confluence-cli
+3. Installs Oh My Zsh
+4. Symlinks all configs (shell, git, SSH, VS Code, Cursor, gh)
+5. Generates SSH key and copies public key to clipboard
+6. Authenticates GitHub CLI
+7. Optionally sets up a work profile
 
 ## Work Profile
 
-Run `./setup-work-profile.sh` anytime to add a work identity:
+Run `./setup-work-profile` anytime to add a work identity:
 
-- Separate git identity (auto-applied by project directory via `includeIf`)
-- Separate SSH key for work Git host
+- Separate git config auto-applied by project directory (`includeIf`)
+- Separate SSH key routed to work Git host
 - Handles same-host (github.com) and enterprise host scenarios
-- Optional: GitHub CLI auth, VS Code profile alias
+- Optional GitHub CLI auth and VS Code profile alias
 
-## Repo Structure
+## What's Included
 
-```
-dotfiles/
-├── .gitconfig              # Git config (personal identity default)
-├── .gitignore              # Global gitignore rules
-├── .ssh/config             # SSH host configuration
-├── .zprofile               # Homebrew env init
-├── .zshenv                 # Volta PATH setup
-├── .zshrc                  # Shell config (Oh My Zsh, aliases, tools)
-├── Brewfile                # Homebrew packages, casks, and VS Code extensions
-├── cursor/settings.json    # Cursor editor settings
-├── gh/config.yml           # GitHub CLI preferences
-├── install.sh              # Install Homebrew + all tools
-├── setup.sh                # Symlink dotfiles + SSH key + work profile prompt
-├── setup-work-profile.sh   # Interactive work profile wizard
-└── vscode/
-    ├── keybindings.json    # VS Code keybindings
-    └── settings.json       # VS Code settings
-```
+| Category | Tools |
+|----------|-------|
+| Shell | zsh + Oh My Zsh, pnpm, Google Cloud SDK |
+| Node | Volta (node, pnpm, yarn, vercel, playwright-mcp) |
+| Git | Sensible defaults, aliases, LFS |
+| Editors | VS Code + Cursor (settings, keybindings, 25 extensions) |
+| AI | OpenCode, Ollama, Claude Code, GitHub Copilot |
 
-## What's NOT in this repo
+## What's NOT Here
 
 - SSH private keys (generated during setup)
 - Auth tokens / API keys
-- node_modules or project builds
+- node_modules or builds

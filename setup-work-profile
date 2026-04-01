@@ -1,0 +1,210 @@
+#!/usr/bin/env zsh
+# Run standalone anytime: ./setup-work-profile
+set -e
+
+DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Colors
+bold="\033[1m"
+dim="\033[2m"
+green="\033[32m"
+blue="\033[34m"
+yellow="\033[33m"
+red="\033[31m"
+reset="\033[0m"
+
+ok()   { echo "  ${green}✓${reset} $1" }
+info() { echo "  ${yellow}→${reset} $1" }
+ask()  { echo -n "  ${blue}?${reset} $1" }
+
+echo ""
+echo "${bold}  Work Profile Setup${reset}"
+echo "${dim}  Separate identity for work repos${reset}"
+echo ""
+
+# ── 1. Identity ─────────────────────────────────────────
+echo "${bold}  Identity${reset}"
+
+DEFAULT_NAME=$(git config --global user.name 2>/dev/null || echo "Rafael Murad")
+
+ask "Full name [$DEFAULT_NAME]: "
+read work_name
+work_name="${work_name:-$DEFAULT_NAME}"
+
+ask "Work email (required): "
+read work_email
+[[ -z "$work_email" ]] && echo "\n  ${red}✗${reset} Email is required." && exit 1
+
+ask "Work projects directory [~/work]: "
+read work_dir
+work_dir="${work_dir:-$HOME/work}"
+work_dir="${work_dir/#\~/$HOME}"
+
+mkdir -p "$work_dir"
+echo ""
+ok "$work_name <$work_email>"
+ok "Projects: $work_dir"
+echo ""
+
+# ── 2. SSH key ───────────────────────────────────────────
+echo "${bold}  SSH Key${reset}"
+
+WORK_KEY="$HOME/.ssh/id_ed25519_work"
+
+if [[ -f "$WORK_KEY" ]]; then
+  info "Work key already exists at $WORK_KEY"
+  read -q "REPLY?  Regenerate? (y/n) "
+  echo ""
+  if [[ "$REPLY" == "y" ]]; then
+    rm -f "$WORK_KEY" "${WORK_KEY}.pub"
+  else
+    ok "Keeping existing key"
+    SKIP_KEYGEN=true
+  fi
+fi
+
+if [[ "$SKIP_KEYGEN" != "true" ]]; then
+  read -q "REPLY?  Generate work SSH key? (y/n) "
+  echo ""
+  if [[ "$REPLY" == "y" ]]; then
+    ssh-keygen -t ed25519 -C "$work_email" -f "$WORK_KEY" -N ""
+    if command -v pbcopy &>/dev/null; then
+      pbcopy < "${WORK_KEY}.pub"
+      ok "Key generated — public key copied to clipboard"
+    else
+      ok "Key generated"
+      info "$(cat "${WORK_KEY}.pub")"
+    fi
+    info "Add this key to your work Git host, then press Enter"
+    read -s
+  else
+    info "Skipped"
+  fi
+fi
+echo ""
+
+# ── 3. Git host ─────────────────────────────────────────
+echo "${bold}  Git Host${reset}"
+
+ask "Work Git host [github.com]: "
+read work_host
+work_host="${work_host:-github.com}"
+
+SSH_CONFIG="$HOME/.ssh/config"
+
+if [[ "$work_host" == "github.com" ]]; then
+  SSH_HOST_ALIAS="github.com-work"
+
+  if grep -q "Host $SSH_HOST_ALIAS" "$SSH_CONFIG" 2>/dev/null; then
+    ok "SSH alias '$SSH_HOST_ALIAS' already configured"
+  else
+    cat >> "$SSH_CONFIG" << EOF
+
+# Work profile (github.com via alias)
+Host $SSH_HOST_ALIAS
+  HostName github.com
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile $WORK_KEY
+EOF
+    ok "SSH alias '$SSH_HOST_ALIAS' added"
+    info "Clone work repos as: git@github.com-work:org/repo.git"
+  fi
+else
+  if grep -q "Host $work_host" "$SSH_CONFIG" 2>/dev/null; then
+    ok "Host '$work_host' already configured"
+  else
+    ssh-keyscan -H "$work_host" >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
+    cat >> "$SSH_CONFIG" << EOF
+
+# Work profile
+Host $work_host
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile $WORK_KEY
+EOF
+    ok "Host '$work_host' added"
+  fi
+fi
+echo ""
+
+# ── 4. Git config ────────────────────────────────────────
+echo "${bold}  Git Config${reset}"
+
+cat > "$HOME/.gitconfig-work" << EOF
+[user]
+    name = $work_name
+    email = $work_email
+EOF
+ok "Created ~/.gitconfig-work"
+
+work_dir_pattern="${work_dir/#$HOME/~}/"
+if grep -q "gitdir:${work_dir_pattern}" "$HOME/.gitconfig" 2>/dev/null; then
+  ok "includeIf already configured"
+else
+  cat >> "$HOME/.gitconfig" << EOF
+
+# Work profile
+[includeIf "gitdir:${work_dir_pattern}"]
+    path = ~/.gitconfig-work
+EOF
+  ok "Added includeIf for $work_dir_pattern"
+fi
+info "Repos in $work_dir/ will auto-use work identity"
+echo ""
+
+# ── 5. GitHub CLI (optional) ─────────────────────────────
+echo "${bold}  GitHub CLI${reset}"
+
+read -q "REPLY?  Authenticate gh with $work_host? (y/n) "
+echo ""
+if [[ "$REPLY" == "y" ]]; then
+  if [[ "$work_host" == "github.com" ]]; then
+    gh auth login --hostname github.com
+  else
+    gh auth login --hostname "$work_host"
+  fi
+  ok "Authenticated"
+else
+  info "Skipped"
+fi
+echo ""
+
+# ── 6. VS Code alias (optional) ─────────────────────────
+echo "${bold}  VS Code${reset}"
+
+read -q "REPLY?  Create VS Code work alias? (y/n) "
+echo ""
+if [[ "$REPLY" == "y" ]]; then
+  ask "VS Code profile name [work]: "
+  read vscode_profile
+  vscode_profile="${vscode_profile:-work}"
+
+  ALIAS_LINE="alias codework=\"code --profile \\\"$vscode_profile\\\"\""
+
+  if grep -q "alias codework=" "$HOME/.zshrc" 2>/dev/null; then
+    ok "Alias 'codework' already exists"
+  else
+    echo "$ALIAS_LINE" >> "$HOME/.zshrc"
+    ok "Added alias: codework"
+  fi
+else
+  info "Skipped"
+fi
+
+# ── Summary ──────────────────────────────────────────────
+echo ""
+echo "${green}${bold}  Work profile ready!${reset}"
+echo ""
+echo "${dim}  $work_name <$work_email>"
+echo "  Directory: $work_dir"
+echo "  Git host:  $work_host"
+echo "  SSH key:   $WORK_KEY${reset}"
+echo ""
+if [[ "$work_host" == "github.com" ]]; then
+  echo "  Clone work repos with:"
+  echo "  ${bold}git clone git@github.com-work:org/repo.git $work_dir/repo${reset}"
+  echo ""
+fi
+echo "${dim}  Restart your terminal: exec zsh${reset}"
+echo ""
