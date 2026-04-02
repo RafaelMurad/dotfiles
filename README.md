@@ -4,17 +4,18 @@ Personal development environment configuration.
 
 ## Setup
 
-```bash
-xcode-select --install
-git clone git@github.com:RafaelMurad/dotfiles.git ~/dotfiles
-~/dotfiles/setup
-```
-
-Or bootstrap from a fresh machine (no clone needed):
+On a fresh machine:
 
 ```bash
 xcode-select --install
 curl -fsSL https://raw.githubusercontent.com/RafaelMurad/dotfiles/main/setup | zsh
+```
+
+Or clone manually (requires SSH keys already configured):
+
+```bash
+git clone git@github.com:RafaelMurad/dotfiles.git ~/dotfiles
+~/dotfiles/setup
 ```
 
 That's it. The `setup` script handles everything:

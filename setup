@@ -3,6 +3,9 @@ set -e
 
 # ── Remote bootstrap ───────────────────────────────────
 # Supports: curl -fsSL https://raw.githubusercontent.com/RafaelMurad/dotfiles/main/setup | zsh
+# Wrapped in a function so the entire script is downloaded before execution
+_setup() {
+
 if [[ ! -d "$HOME/dotfiles/.git" ]]; then
   echo "Cloning dotfiles..."
   git clone https://github.com/RafaelMurad/dotfiles.git "$HOME/dotfiles"
@@ -172,3 +175,6 @@ echo ""
 echo "${green}${bold}  Setup complete!${reset}"
 echo "${dim}  Restart your terminal: exec zsh${reset}"
 echo ""
+
+} # end _setup
+_setup "$@"
