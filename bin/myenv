@@ -1,0 +1,224 @@
+#!/usr/bin/env zsh
+# myenv — show your dev environment at a glance
+# Usage: myenv
+
+bold="\033[1m"
+dim="\033[2m"
+green="\033[32m"
+blue="\033[34m"
+yellow="\033[33m"
+red="\033[31m"
+cyan="\033[36m"
+reset="\033[0m"
+
+_ver() { "$@" 2>/dev/null || echo "${dim}not installed${reset}"; }
+_check() {
+  if command -v "$1" &>/dev/null; then
+    echo "${green}✓${reset}"
+  else
+    echo "${red}✗${reset}"
+  fi
+}
+
+echo ""
+echo "${bold}${blue}  ╔══════════════════════════════════════════╗${reset}"
+echo "${bold}${blue}  ║${reset}  ${bold}Rafael's Dev Environment${reset}               ${bold}${blue}║${reset}"
+echo "${bold}${blue}  ╚══════════════════════════════════════════╝${reset}"
+echo ""
+
+# ── System ──────────────────────────────────────────────
+echo "${bold}  System${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+echo "  Host          $(scutil --get ComputerName 2>/dev/null || hostname)"
+echo "  macOS         $(sw_vers -productVersion 2>/dev/null) ($(uname -m))"
+echo "  Shell         $SHELL ($ZSH_VERSION)"
+echo "  Terminal      ${TERM_PROGRAM:-unknown} ${TERM_PROGRAM_VERSION:+v$TERM_PROGRAM_VERSION}"
+echo "  Uptime        $(uptime | sed 's/.*up //' | sed 's/,.*//' | xargs)"
+_cpu_count=$(sysctl -n hw.ncpu 2>/dev/null)
+_mem_gb=$(( $(sysctl -n hw.memsize 2>/dev/null) / 1073741824 ))
+echo "  Hardware      ${_cpu_count} cores, ${_mem_gb}GB RAM"
+echo "  Disk          $(df -h / 2>/dev/null | tail -1 | awk '{print $4 " free of " $2}')"
+echo ""
+
+# ── Identity ────────────────────────────────────────────
+echo "${bold}  Identity${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+_git_name=$(git config --global user.name 2>/dev/null || echo "not set")
+_git_email=$(git config --global user.email 2>/dev/null || echo "not set")
+echo "  Personal      $_git_name <$_git_email>"
+
+if [[ -f "$HOME/.gitconfig-work" ]]; then
+  _work_name=$(git config -f "$HOME/.gitconfig-work" user.name 2>/dev/null)
+  _work_email=$(git config -f "$HOME/.gitconfig-work" user.email 2>/dev/null)
+  _work_dir=$(grep -A1 'includeIf' "$HOME/.gitconfig" 2>/dev/null | grep path | head -1)
+  # Find the work directory from gitconfig includeIf
+  _work_gitdir=$(grep 'gitdir:' "$HOME/.gitconfig" 2>/dev/null | head -1 | sed 's/.*gitdir://' | sed 's/".*//' | xargs)
+  echo "  Work          $_work_name <$_work_email>"
+  [[ -n "$_work_gitdir" ]] && echo "  Work dir      ${_work_gitdir}"
+fi
+
+# GitHub auth
+if command -v gh &>/dev/null && gh auth status &>/dev/null 2>&1; then
+  _gh_user=$(gh api user --jq '.login' 2>/dev/null)
+  echo "  GitHub        ${green}✓${reset} $_gh_user"
+else
+  echo "  GitHub        ${red}✗${reset} not authenticated"
+fi
+
+# GitLab auth
+if command -v glab &>/dev/null && glab auth status &>/dev/null 2>&1; then
+  echo "  GitLab        ${green}✓${reset} authenticated"
+else
+  if command -v glab &>/dev/null; then
+    echo "  GitLab        ${red}✗${reset} not authenticated"
+  fi
+fi
+
+# SSH keys
+_ssh_keys=()
+for _kf in "$HOME"/.ssh/id_*(N); do
+  [[ "$_kf" == *.pub ]] && continue
+  _comment=$(ssh-keygen -lf "$_kf" 2>/dev/null | awk '{print $3}')
+  _ssh_keys+=("${_kf/#$HOME/~} ${dim}$_comment${reset}")
+done
+if (( ${#_ssh_keys[@]} > 0 )); then
+  echo "  SSH keys      ${#_ssh_keys[@]} key(s)"
+  for _k in "${_ssh_keys[@]}"; do
+    echo "                  $_k"
+  done
+fi
+echo ""
+
+# ── Tools & Runtimes ────────────────────────────────────
+echo "${bold}  Tools & Runtimes${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+echo "  $(_check brew) Homebrew        $(brew --version 2>/dev/null | head -1 | cut -d' ' -f2 || echo '-')"
+echo "  $(_check git) Git             $(git --version 2>/dev/null | cut -d' ' -f3 || echo '-')"
+echo "  $(_check volta) Volta           $(volta --version 2>/dev/null || echo '-')"
+echo "  $(_check node) Node            $(node --version 2>/dev/null || echo '-')"
+echo "  $(_check pnpm) pnpm            $(pnpm --version 2>/dev/null || echo '-')"
+echo "  $(_check yarn) yarn            $(yarn --version 2>/dev/null || echo '-')"
+echo "  $(_check zsh) Oh My Zsh       $([ -d "$HOME/.oh-my-zsh" ] && echo "installed ($ZSH_THEME)" || echo "not installed")"
+echo ""
+
+# ── CLIs ────────────────────────────────────────────────
+echo "${bold}  CLIs${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+echo "  $(_check gh) gh              $(gh --version 2>/dev/null | head -1 | cut -d' ' -f3 || echo '-')            ${dim}GitHub${reset}"
+if command -v glab &>/dev/null; then
+  echo "  $(_check glab) glab            $(glab --version 2>/dev/null | head -1 | awk '{print $3}' || echo '-')            ${dim}GitLab${reset}"
+fi
+echo "  $(_check vercel) vercel          $(vercel --version 2>/dev/null | head -1 | tr -d ' ' || echo '-')     ${dim}Deployments${reset}"
+echo "  $(_check opencode) opencode        $(opencode version 2>/dev/null | head -1 || echo '-')            ${dim}AI coding${reset}"
+echo "  $(_check ollama) ollama          $(ollama --version 2>/dev/null | awk '{print $NF}' || echo '-')            ${dim}Local LLMs${reset}"
+echo "  $(_check fzf) fzf             $(fzf --version 2>/dev/null | awk '{print $1}' || echo '-')            ${dim}Fuzzy finder${reset}"
+echo "  $(_check btop) btop            $(btop --version 2>/dev/null | awk '{print $2}' || echo '-')            ${dim}System monitor${reset}"
+echo "  $(_check tree) tree            $(tree --version 2>/dev/null | awk '{print $2}' || echo '-')            ${dim}Directory tree${reset}"
+echo "  $(_check shellcheck) shellcheck      $(shellcheck --version 2>/dev/null | grep version: | awk '{print $2}' || echo '-')            ${dim}Shell linter${reset}"
+echo ""
+
+# ── Apps ────────────────────────────────────────────────
+echo "${bold}  Apps${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+_apps=(
+  "Ghostty:Terminal"
+  "Visual Studio Code:Editor"
+  "Cursor:AI editor"
+  "Claude:AI terminal"
+  "Figma:Design"
+  "Spotify:Music"
+  "Google Chrome:Browser"
+  "Slack:Chat"
+)
+for _app_entry in "${_apps[@]}"; do
+  _app_name="${_app_entry%%:*}"
+  _app_desc="${_app_entry##*:}"
+  if [[ -d "/Applications/${_app_name}.app" ]]; then
+    echo "  ${green}✓${reset} ${_app_name}$(printf '%*s' $((24 - ${#_app_name})) '')${dim}$_app_desc${reset}"
+  fi
+done
+echo ""
+
+# ── Configs ─────────────────────────────────────────────
+echo "${bold}  Configs${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+[[ -L "$HOME/.zshrc" ]]             && echo "  ${green}✓${reset} Shell           .zshrc, .zprofile, .zshenv, .aliases, .functions"
+[[ -L "$HOME/.gitconfig" ]]         && echo "  ${green}✓${reset} Git             .gitconfig, .gitignore_global"
+[[ -L "$HOME/.ssh/config" ]]        && echo "  ${green}✓${reset} SSH             ~/.ssh/config"
+
+_ext_count=$(code --list-extensions 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$_ext_count" -gt 0 ]]; then
+  echo "  ${green}✓${reset} VS Code         settings + keybindings, $_ext_count extensions"
+fi
+[[ -L "$HOME/Library/Application Support/Cursor/User/settings.json" ]] && echo "  ${green}✓${reset} Cursor          settings.json"
+[[ -L "$HOME/.config/gh/config.yml" ]] && echo "  ${green}✓${reset} GitHub CLI      config.yml"
+[[ -f "$HOME/.extra" ]]             && echo "  ${green}✓${reset} Extras          ~/.extra (private, gitignored)"
+
+# macOS defaults
+if [[ "$(defaults read com.apple.dock autohide 2>/dev/null)" == "1" ]] \
+  && [[ "$(defaults read com.apple.dock tilesize 2>/dev/null)" == "48" ]]; then
+  echo "  ${green}✓${reset} macOS           system preferences applied"
+fi
+echo ""
+
+# ── Directories ─────────────────────────────────────────
+echo "${bold}  Directories${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+echo "  ~/dotfiles    $([ -d "$HOME/dotfiles" ] && echo "${green}✓${reset} config repo" || echo "${red}✗${reset} missing")"
+
+if [[ -d "$HOME/code" ]]; then
+  _repo_count=$(find "$HOME/code" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+  echo "  ~/code        ${green}✓${reset} $_repo_count repos"
+else
+  echo "  ~/code        ${dim}not created yet${reset}  ${dim}~/dotfiles/clone-repos${reset}"
+fi
+
+if [[ -n "$_work_gitdir" ]]; then
+  _wdir="${_work_gitdir/#\~/$HOME}"
+  _wdir="${_wdir%/}"
+  if [[ -d "$_wdir" ]]; then
+    _wrepo_count=$(find "$_wdir" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+    echo "  ${_work_gitdir%/}         ${green}✓${reset} $_wrepo_count repos (work)"
+  else
+    echo "  ${_work_gitdir%/}         ${dim}empty${reset}"
+  fi
+fi
+
+echo "  ~/Screenshots $([ -d "$HOME/Screenshots" ] && echo "${green}✓${reset} screenshots" || echo "${dim}not created${reset}")"
+echo ""
+
+# ── Homebrew Health ─────────────────────────────────────
+echo "${bold}  Homebrew${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+_formula_count=$(brew list --formula -1 2>/dev/null | wc -l | tr -d ' ')
+_cask_count=$(brew list --cask -1 2>/dev/null | wc -l | tr -d ' ')
+echo "  Installed     $_formula_count formulae, $_cask_count casks"
+
+if brew bundle check --file="$HOME/dotfiles/Brewfile" &>/dev/null 2>&1; then
+  echo "  Brewfile      ${green}✓${reset} all packages satisfied"
+else
+  echo "  Brewfile      ${yellow}!${reset} some packages missing — run ${dim}dot${reset} to fix"
+fi
+echo ""
+
+# ── Quick Reference ─────────────────────────────────────
+echo "${bold}  Quick Reference${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+echo "  ${cyan}dot${reset}             Update everything (brew, volta, omz)"
+echo "  ${cyan}dot --macos${reset}     Update + reapply macOS defaults"
+echo "  ${cyan}myenv${reset}           Show this screen"
+echo "  ${cyan}reload${reset}          Restart shell (exec zsh)"
+echo "  ${cyan}opencode${reset}        AI coding agent"
+echo ""
+echo "  ${dim}Git${reset}             gs gd gp gl gc gco gb glog"
+echo "  ${dim}Navigation${reset}      .. ... .... ~"
+echo "  ${dim}Files${reset}           ll la lsd tree"
+echo "  ${dim}Network${reset}         myip localip flushdns"
+echo "  ${dim}System${reset}          afk emptytrash cleanup path"
+echo "  ${dim}Functions${reset}       mkcd serve port killport gopen extract"
+echo ""
+echo "  ${dim}Dotfiles        ~/dotfiles${reset}"
+echo "  ${dim}Work profile    ~/dotfiles/setup-work-profile${reset}"
+echo "  ${dim}Teardown        ~/dotfiles/teardown${reset}"
+echo "  ${dim}Extras          \$EDITOR ~/.extra${reset}"
+echo ""
