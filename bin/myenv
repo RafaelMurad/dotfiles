@@ -2,75 +2,147 @@
 # myenv — show your dev environment at a glance
 # Usage: myenv
 
-bold="\033[1m"
-dim="\033[2m"
-green="\033[32m"
-blue="\033[34m"
-yellow="\033[33m"
-red="\033[31m"
-cyan="\033[36m"
-reset="\033[0m"
+# ── Colors ──────────────────────────────────────────────
+bold='\033[1m'
+dim='\033[2m'
+reset='\033[0m'
+green='\033[32m'
+blue='\033[34m'
+yellow='\033[33m'
+red='\033[31m'
+cyan='\033[36m'
+magenta='\033[35m'
+white='\033[97m'
 
-_ver() { "$@" 2>/dev/null || echo "${dim}not installed${reset}"; }
-_check() {
-  if command -v "$1" &>/dev/null; then
-    echo "${green}✓${reset}"
-  else
-    echo "${red}✗${reset}"
-  fi
+# ── Helpers ─────────────────────────────────────────────
+_ok="${green}✓${reset}"
+_no="${red}✗${reset}"
+_warn="${yellow}!${reset}"
+
+_has() { command -v "$1" &>/dev/null; }
+
+# Print a section header with blue accent bar
+_header() {
+  echo ""
+  printf "  ${bold}${blue}▎${reset} ${bold}%s${reset}\n" "$1"
+  echo "  ${dim}──────────────────────────────────────────${reset}"
 }
 
+# Print a row: label (fixed width) + value + optional description
+# Uses %b for value so ANSI codes are interpreted
+_row() {
+  local label="$1" value="$2" desc="$3"
+  printf "  %-16s %b" "$label" "$value"
+  [[ -n "$desc" ]] && printf "  ${dim}%s${reset}" "$desc"
+  printf "\n"
+}
+
+# Print a tool row: checkmark + name (fixed) + version + description
+_tool() {
+  local cmd="$1" name="$2" ver="$3" desc="$4"
+  local mark
+  if _has "$cmd"; then
+    mark="$_ok"
+    [[ -z "$ver" ]] && ver="${dim}-${reset}"
+  else
+    mark="$_no"
+    ver="${dim}not installed${reset}"
+  fi
+  printf "  %b %-14s %-18b ${dim}%s${reset}\n" "$mark" "$name" "$ver" "$desc"
+}
+
+# Get clean version strings
+_ver_brew()       { brew --version 2>/dev/null | head -1 | cut -d' ' -f2; }
+_ver_git()        { git --version 2>/dev/null | cut -d' ' -f3; }
+_ver_volta()      { volta --version 2>/dev/null; }
+_ver_node()       { node --version 2>/dev/null | tr -d 'v'; }
+_ver_pnpm()       { pnpm --version 2>/dev/null; }
+_ver_yarn()       { yarn --version 2>/dev/null; }
+_ver_gh()         { gh --version 2>/dev/null | head -1 | awk '{print $3}'; }
+_ver_glab()       { glab --version 2>/dev/null | head -1 | awk '{print $3}'; }
+_ver_vercel()     { vercel --version 2>/dev/null | head -1 | tr -d ' '; }
+_ver_opencode()   { opencode --version 2>/dev/null | head -1; }
+_ver_ollama()     { ollama --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1; }
+_ver_fzf()        { fzf --version 2>/dev/null | awk '{print $1}'; }
+_ver_btop()       { btop --version 2>/dev/null | head -1 | sed 's/\x1b\[[0-9;]*m//g' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'; }
+_ver_tree()       { tree --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'; }
+_ver_shellcheck() { shellcheck --version 2>/dev/null | grep '^version:' | awk '{print $2}'; }
+
+# ────────────────────────────────────────────────────────
+# Banner
+# ────────────────────────────────────────────────────────
+_date=$(date '+%A, %B %d %Y')
+_date_pad=$(( 43 - ${#_date} ))
+(( _date_pad < 0 )) && _date_pad=0
+
 echo ""
-echo "${bold}${blue}  ╔══════════════════════════════════════════╗${reset}"
-echo "${bold}${blue}  ║${reset}  ${bold}Rafael's Dev Environment${reset}               ${bold}${blue}║${reset}"
-echo "${bold}${blue}  ╚══════════════════════════════════════════╝${reset}"
-echo ""
+echo "  ${bold}${blue}╔══════════════════════════════════════════════╗${reset}"
+echo "  ${bold}${blue}║${reset}                                              ${bold}${blue}║${reset}"
+echo "  ${bold}${blue}║${reset}   ${bold}${white}Rafael's Dev Environment${reset}                   ${bold}${blue}║${reset}"
+printf "  ${bold}${blue}║${reset}   ${dim}%s${reset}%*s${bold}${blue}║${reset}\n" "$_date" "$_date_pad" ""
+echo "  ${bold}${blue}║${reset}                                              ${bold}${blue}║${reset}"
+echo "  ${bold}${blue}╚══════════════════════════════════════════════╝${reset}"
 
 # ── System ──────────────────────────────────────────────
-echo "${bold}  System${reset}"
-echo "  ${dim}─────────────────────────────────────────${reset}"
-echo "  Host          $(scutil --get ComputerName 2>/dev/null || hostname)"
-echo "  macOS         $(sw_vers -productVersion 2>/dev/null) ($(uname -m))"
-echo "  Shell         $SHELL ($ZSH_VERSION)"
-echo "  Terminal      ${TERM_PROGRAM:-unknown} ${TERM_PROGRAM_VERSION:+v$TERM_PROGRAM_VERSION}"
-echo "  Uptime        $(uptime | sed 's/.*up //' | sed 's/,.*//' | xargs)"
+_header "System"
+
+_hostname=$(scutil --get ComputerName 2>/dev/null || hostname)
+_macos_ver=$(sw_vers -productVersion 2>/dev/null)
+_arch=$(uname -m)
 _cpu_count=$(sysctl -n hw.ncpu 2>/dev/null)
 _mem_gb=$(( $(sysctl -n hw.memsize 2>/dev/null) / 1073741824 ))
-echo "  Hardware      ${_cpu_count} cores, ${_mem_gb}GB RAM"
-echo "  Disk          $(df -h / 2>/dev/null | tail -1 | awk '{print $4 " free of " $2}')"
-echo ""
+_uptime=$(uptime | sed 's/.*up //' | sed 's/,.*//' | xargs)
+
+_row "Host"     "${bold}${_hostname}${reset}"
+_row "macOS"    "${_macos_ver} (${_arch})"
+_row "Shell"    "$SHELL ${dim}($ZSH_VERSION)${reset}"
+_row "Terminal" "${TERM_PROGRAM:-unknown} ${TERM_PROGRAM_VERSION:+v$TERM_PROGRAM_VERSION}"
+_row "Hardware" "${_cpu_count} cores, ${_mem_gb}GB RAM"
+_row "Uptime"   "$_uptime"
+
+# Disk usage bar
+_disk_pct=$(df -h / 2>/dev/null | tail -1 | awk '{gsub(/%/,""); print $5}')
+_disk_free=$(df -h / 2>/dev/null | tail -1 | awk '{print $4}')
+_disk_total=$(df -h / 2>/dev/null | tail -1 | awk '{print $2}')
+if [[ -n "$_disk_pct" ]]; then
+  _bar_width=20
+  _filled=$(( _disk_pct * _bar_width / 100 ))
+  _empty=$(( _bar_width - _filled ))
+  _bar_color="$green"
+  (( _disk_pct > 70 )) && _bar_color="$yellow"
+  (( _disk_pct > 90 )) && _bar_color="$red"
+  _bar="${_bar_color}$(printf '█%.0s' {1..$_filled})${dim}$(printf '░%.0s' {1..$_empty})${reset}"
+  _row "Disk" "${_bar} ${_disk_pct}% used ${dim}(${_disk_free} free of ${_disk_total})${reset}"
+fi
 
 # ── Identity ────────────────────────────────────────────
-echo "${bold}  Identity${reset}"
-echo "  ${dim}─────────────────────────────────────────${reset}"
+_header "Identity"
+
 _git_name=$(git config --global user.name 2>/dev/null || echo "not set")
 _git_email=$(git config --global user.email 2>/dev/null || echo "not set")
-echo "  Personal      $_git_name <$_git_email>"
+_row "Personal" "${cyan}${_git_name}${reset} ${dim}<${_git_email}>${reset}"
 
 if [[ -f "$HOME/.gitconfig-work" ]]; then
   _work_name=$(git config -f "$HOME/.gitconfig-work" user.name 2>/dev/null)
   _work_email=$(git config -f "$HOME/.gitconfig-work" user.email 2>/dev/null)
-  _work_dir=$(grep -A1 'includeIf' "$HOME/.gitconfig" 2>/dev/null | grep path | head -1)
-  # Find the work directory from gitconfig includeIf
   _work_gitdir=$(grep 'gitdir:' "$HOME/.gitconfig" 2>/dev/null | head -1 | sed 's/.*gitdir://' | sed 's/".*//' | xargs)
-  echo "  Work          $_work_name <$_work_email>"
-  [[ -n "$_work_gitdir" ]] && echo "  Work dir      ${_work_gitdir}"
+  _row "Work" "${magenta}${_work_name}${reset} ${dim}<${_work_email}>${reset}"
+  [[ -n "$_work_gitdir" ]] && _row "Work dir" "$_work_gitdir"
 fi
 
-# GitHub auth
-if command -v gh &>/dev/null && gh auth status &>/dev/null 2>&1; then
+# Auth status
+if _has gh && gh auth status &>/dev/null 2>&1; then
   _gh_user=$(gh api user --jq '.login' 2>/dev/null)
-  echo "  GitHub        ${green}✓${reset} $_gh_user"
+  _row "GitHub" "${_ok} ${green}${_gh_user}${reset}"
 else
-  echo "  GitHub        ${red}✗${reset} not authenticated"
+  _row "GitHub" "${_no} ${dim}not authenticated${reset}"
 fi
 
-# GitLab auth
-if command -v glab &>/dev/null && glab auth status &>/dev/null 2>&1; then
-  echo "  GitLab        ${green}✓${reset} authenticated"
-else
-  if command -v glab &>/dev/null; then
-    echo "  GitLab        ${red}✗${reset} not authenticated"
+if _has glab; then
+  if glab auth status &>/dev/null 2>&1; then
+    _row "GitLab" "${_ok} ${green}authenticated${reset}"
+  else
+    _row "GitLab" "${_no} ${dim}not authenticated${reset}"
   fi
 fi
 
@@ -79,98 +151,229 @@ _ssh_keys=()
 for _kf in "$HOME"/.ssh/id_*(N); do
   [[ "$_kf" == *.pub ]] && continue
   _comment=$(ssh-keygen -lf "$_kf" 2>/dev/null | awk '{print $3}')
-  _ssh_keys+=("${_kf/#$HOME/~} ${dim}$_comment${reset}")
+  _type=$(ssh-keygen -lf "$_kf" 2>/dev/null | awk '{gsub(/[()]/, "", $4); print $4}')
+  _ssh_keys+=("${_kf/#$HOME/~} ${dim}${_comment} (${_type})${reset}")
 done
 if (( ${#_ssh_keys[@]} > 0 )); then
-  echo "  SSH keys      ${#_ssh_keys[@]} key(s)"
+  _row "SSH keys" "${#_ssh_keys[@]} key(s)"
   for _k in "${_ssh_keys[@]}"; do
-    echo "                  $_k"
+    printf "                    %b\n" "$_k"
   done
 fi
-echo ""
 
 # ── Tools & Runtimes ────────────────────────────────────
-echo "${bold}  Tools & Runtimes${reset}"
-echo "  ${dim}─────────────────────────────────────────${reset}"
-echo "  $(_check brew) Homebrew        $(brew --version 2>/dev/null | head -1 | cut -d' ' -f2 || echo '-')"
-echo "  $(_check git) Git             $(git --version 2>/dev/null | cut -d' ' -f3 || echo '-')"
-echo "  $(_check volta) Volta           $(volta --version 2>/dev/null || echo '-')"
-echo "  $(_check node) Node            $(node --version 2>/dev/null || echo '-')"
-echo "  $(_check pnpm) pnpm            $(pnpm --version 2>/dev/null || echo '-')"
-echo "  $(_check yarn) yarn            $(yarn --version 2>/dev/null || echo '-')"
-echo "  $(_check zsh) Oh My Zsh       $([ -d "$HOME/.oh-my-zsh" ] && echo "installed ($ZSH_THEME)" || echo "not installed")"
-echo ""
+_header "Tools & Runtimes"
+
+_tool "brew"  "Homebrew"  "$(_ver_brew)"   ""
+_tool "git"   "Git"       "$(_ver_git)"    ""
+_tool "volta" "Volta"     "$(_ver_volta)"  "Node version manager"
+_tool "node"  "Node"      "$(_ver_node)"   ""
+_tool "pnpm"  "pnpm"      "$(_ver_pnpm)"   ""
+_tool "yarn"  "yarn"      "$(_ver_yarn)"   ""
+
+# Oh My Zsh (not a binary)
+if [[ -d "$HOME/.oh-my-zsh" ]]; then
+  printf "  %b %-14s %-18s ${dim}%s${reset}\n" "$_ok" "Oh My Zsh" "${ZSH_THEME:-default}" "theme"
+else
+  printf "  %b %-14s %b\n" "$_no" "Oh My Zsh" "${dim}not installed${reset}"
+fi
 
 # ── CLIs ────────────────────────────────────────────────
-echo "${bold}  CLIs${reset}"
-echo "  ${dim}─────────────────────────────────────────${reset}"
-echo "  $(_check gh) gh              $(gh --version 2>/dev/null | head -1 | cut -d' ' -f3 || echo '-')            ${dim}GitHub${reset}"
-if command -v glab &>/dev/null; then
-  echo "  $(_check glab) glab            $(glab --version 2>/dev/null | head -1 | awk '{print $3}' || echo '-')            ${dim}GitLab${reset}"
+_header "CLIs"
+
+_tool "gh"         "gh"          "$(_ver_gh)"         "GitHub CLI"
+if _has glab; then
+  _tool "glab"     "glab"        "$(_ver_glab)"       "GitLab CLI"
 fi
-echo "  $(_check vercel) vercel          $(vercel --version 2>/dev/null | head -1 | tr -d ' ' || echo '-')     ${dim}Deployments${reset}"
-echo "  $(_check opencode) opencode        $(opencode version 2>/dev/null | head -1 || echo '-')            ${dim}AI coding${reset}"
-echo "  $(_check ollama) ollama          $(ollama --version 2>/dev/null | awk '{print $NF}' || echo '-')            ${dim}Local LLMs${reset}"
-echo "  $(_check fzf) fzf             $(fzf --version 2>/dev/null | awk '{print $1}' || echo '-')            ${dim}Fuzzy finder${reset}"
-echo "  $(_check btop) btop            $(btop --version 2>/dev/null | awk '{print $2}' || echo '-')            ${dim}System monitor${reset}"
-echo "  $(_check tree) tree            $(tree --version 2>/dev/null | awk '{print $2}' || echo '-')            ${dim}Directory tree${reset}"
-echo "  $(_check shellcheck) shellcheck      $(shellcheck --version 2>/dev/null | grep version: | awk '{print $2}' || echo '-')            ${dim}Shell linter${reset}"
-echo ""
+_tool "vercel"     "vercel"      "$(_ver_vercel)"     "Deployments"
+_tool "opencode"   "opencode"    "$(_ver_opencode)"   "AI coding agent"
+_tool "ollama"     "ollama"      "$(_ver_ollama)"     "Local LLMs"
+_tool "fzf"        "fzf"         "$(_ver_fzf)"        "Fuzzy finder"
+_tool "btop"       "btop"        "$(_ver_btop)"       "System monitor"
+_tool "tree"       "tree"        "$(_ver_tree)"       "Directory tree"
+_tool "shellcheck" "shellcheck"  "$(_ver_shellcheck)" "Shell linter"
 
 # ── Apps ────────────────────────────────────────────────
-echo "${bold}  Apps${reset}"
-echo "  ${dim}─────────────────────────────────────────${reset}"
-_apps=(
-  "Ghostty:Terminal"
-  "Visual Studio Code:Editor"
-  "Cursor:AI editor"
-  "Claude:AI terminal"
-  "Figma:Design"
-  "Spotify:Music"
-  "Google Chrome:Browser"
-  "Slack:Chat"
-)
-for _app_entry in "${_apps[@]}"; do
-  _app_name="${_app_entry%%:*}"
-  _app_desc="${_app_entry##*:}"
-  if [[ -d "/Applications/${_app_name}.app" ]]; then
-    echo "  ${green}✓${reset} ${_app_name}$(printf '%*s' $((24 - ${#_app_name})) '')${dim}$_app_desc${reset}"
+_header "Apps"
+
+_app() {
+  local name="$1" desc="$2"
+  if [[ -d "/Applications/${name}.app" ]]; then
+    printf "  %b %-22s ${dim}%s${reset}\n" "$_ok" "$name" "$desc"
   fi
-done
-echo ""
+}
+
+_app "Ghostty"              "GPU-accelerated terminal emulator"
+_app "Visual Studio Code"   "Open-source code editor by Microsoft"
+_app "Cursor"               "AI-powered code editor (VS Code fork)"
+_app "Claude"               "Anthropic's AI desktop assistant"
+_app "Figma"                "Collaborative UI design tool"
+_app "Spotify"              "Music streaming service"
+_app "Google Chrome"        "Web browser by Google"
+_app "Slack"                "Team messaging and collaboration"
+_app "Docker"               "Container platform for development"
+_app "Android Studio"       "IDE for Android development"
+
+# ── Homebrew Packages ──────────────────────────────────
+_header "Homebrew Packages"
+
+# Cache installed lists and versions (fast)
+_installed_formulae=$(brew list --formula -1 2>/dev/null)
+_installed_casks=$(brew list --cask -1 2>/dev/null)
+_formula_versions=$(brew list --formula --versions 2>/dev/null)
+_cask_versions=$(brew list --cask --versions 2>/dev/null)
+
+_is_formula() { echo "$_installed_formulae" | grep -qx "$1" 2>/dev/null; }
+_is_cask()    { echo "$_installed_casks" | grep -qx "$1" 2>/dev/null; }
+_fver()       { echo "$_formula_versions" | grep "^$1 " 2>/dev/null | awk '{print $2}'; }
+_cver()       { echo "$_cask_versions" | grep "^$1 " 2>/dev/null | awk '{print $2}'; }
+
+# Parse Brewfile and display grouped items
+_brewfile="${HOME}/dotfiles/Brewfile"
+if [[ ! -f "$_brewfile" ]]; then
+  # Fallback locations
+  for _bf in "${0:A:h}/../Brewfile" "/tmp/dotfiles-edit/Brewfile"; do
+    [[ -f "$_bf" ]] && _brewfile="$_bf" && break
+  done
+fi
+
+if [[ -f "$_brewfile" ]]; then
+  _section=""
+  _bf_formula_count=0
+  _bf_formula_installed=0
+  _bf_cask_count=0
+  _bf_cask_installed=0
+  _bf_ext_count=0
+
+  while IFS= read -r line; do
+    # Skip blank lines
+    [[ -z "${line// /}" ]] && continue
+
+    # Section header: standalone comment line (not inline)
+    # Skip "VS Code extensions" header — handled separately below
+    if [[ "$line" =~ ^#\ (.+)$ ]] && [[ ! "$line" =~ ^(tap|brew|cask|vscode) ]]; then
+      _section="${match[1]}"
+      if [[ "${_section:l}" != *"extension"* ]]; then
+        echo ""
+        printf "  ${yellow}%s${reset}\n" "$_section"
+      fi
+      continue
+    fi
+
+    # Extract inline description (after the last #)
+    _desc=""
+    if [[ "$line" == *"#"* ]]; then
+      _desc="${line##*# }"
+    fi
+
+    # Tap
+    if [[ "$line" =~ ^tap\ \"([^\"]+)\" ]]; then
+      _tap_name="${match[1]}"
+      printf "  %b %-28s ${dim}%s${reset}\n" "$_ok" "$_tap_name" "$_desc"
+
+    # Formula
+    elif [[ "$line" =~ ^brew\ \"([^\"]+)\" ]]; then
+      _pkg="${match[1]}"
+      # Handle tap/formula format (e.g., anomalyco/tap/opencode → opencode)
+      _pkg_short="${_pkg##*/}"
+      (( _bf_formula_count++ ))
+      if _is_formula "$_pkg_short"; then
+        _v=$(_fver "$_pkg_short")
+        (( _bf_formula_installed++ ))
+        printf "  %b %-18s ${cyan}%-10s${reset} ${dim}%s${reset}\n" "$_ok" "$_pkg_short" "$_v" "$_desc"
+      else
+        printf "  %b %-18s ${dim}%-10s${reset} ${dim}%s${reset}\n" "$_no" "$_pkg_short" "-" "$_desc"
+      fi
+
+    # Cask
+    elif [[ "$line" =~ ^cask\ \"([^\"]+)\" ]]; then
+      _pkg="${match[1]}"
+      (( _bf_cask_count++ ))
+      if _is_cask "$_pkg"; then
+        _v=$(_cver "$_pkg")
+        (( _bf_cask_installed++ ))
+        printf "  %b %-18s ${cyan}%-10s${reset} ${dim}%s${reset}\n" "$_ok" "$_pkg" "$_v" "$_desc"
+      else
+        printf "  %b %-18s ${dim}%-10s${reset} ${dim}%s${reset}\n" "$_no" "$_pkg" "-" "$_desc"
+      fi
+
+    # VS Code extension
+    elif [[ "$line" =~ ^vscode\ \"([^\"]+)\" ]]; then
+      (( _bf_ext_count++ ))
+    fi
+  done < "$_brewfile"
+
+  # VS Code extensions summary
+  _ext_installed=$(code --list-extensions 2>/dev/null | wc -l | tr -d ' ')
+  echo ""
+  printf "  ${yellow}VS Code Extensions${reset}\n"
+  if [[ "$_ext_installed" -gt 0 ]]; then
+    printf "  %b %-18s ${cyan}%s${reset} ${dim}of %s from Brewfile${reset}\n" "$_ok" "Extensions" "$_ext_installed installed" "$_bf_ext_count"
+  else
+    printf "  %b %-18s ${dim}%s${reset}\n" "$_no" "Extensions" "VS Code not found"
+  fi
+
+  # Dependency count
+  _total_formulae=$(echo "$_installed_formulae" | wc -l | tr -d ' ')
+  _dep_count=$(( _total_formulae - _bf_formula_installed ))
+  _total_casks=$(echo "$_installed_casks" | wc -l | tr -d ' ')
+
+  echo ""
+  echo "  ${dim}──────────────────────────────────────────${reset}"
+  printf "  Brewfile       %b/%b formulae, %b/%b casks\n" \
+    "${green}${_bf_formula_installed}${reset}" "$_bf_formula_count" \
+    "${green}${_bf_cask_installed}${reset}" "$_bf_cask_count"
+  printf "  Total          %s formulae, %s casks ${dim}(+%s dependencies)${reset}\n" \
+    "$_total_formulae" "$_total_casks" "$_dep_count"
+else
+  _total_formulae=$(echo "$_installed_formulae" | wc -l | tr -d ' ')
+  _total_casks=$(echo "$_installed_casks" | wc -l | tr -d ' ')
+  printf "  %-16s %s formulae, %s casks\n" "Installed" "$_total_formulae" "$_total_casks"
+  echo "  ${dim}Brewfile not found — cannot verify packages${reset}"
+fi
 
 # ── Configs ─────────────────────────────────────────────
-echo "${bold}  Configs${reset}"
-echo "  ${dim}─────────────────────────────────────────${reset}"
-[[ -L "$HOME/.zshrc" ]]             && echo "  ${green}✓${reset} Shell           .zshrc, .zprofile, .zshenv, .aliases, .functions"
-[[ -L "$HOME/.gitconfig" ]]         && echo "  ${green}✓${reset} Git             .gitconfig, .gitignore_global"
-[[ -L "$HOME/.ssh/config" ]]        && echo "  ${green}✓${reset} SSH             ~/.ssh/config"
+_header "Configs"
+
+_config() {
+  printf "  %b %-14s ${dim}%s${reset}\n" "$1" "$2" "$3"
+}
+
+[[ -L "$HOME/.zshrc" ]]             && _config "$_ok" "Shell"      ".zshrc, .zprofile, .zshenv, .aliases, .functions"
+[[ -L "$HOME/.gitconfig" ]]         && _config "$_ok" "Git"        ".gitconfig, .gitignore_global"
+[[ -L "$HOME/.ssh/config" ]]        && _config "$_ok" "SSH"        "~/.ssh/config"
 
 _ext_count=$(code --list-extensions 2>/dev/null | wc -l | tr -d ' ')
-if [[ "$_ext_count" -gt 0 ]]; then
-  echo "  ${green}✓${reset} VS Code         settings + keybindings, $_ext_count extensions"
-fi
-[[ -L "$HOME/Library/Application Support/Cursor/User/settings.json" ]] && echo "  ${green}✓${reset} Cursor          settings.json"
-[[ -L "$HOME/.config/gh/config.yml" ]] && echo "  ${green}✓${reset} GitHub CLI      config.yml"
-[[ -f "$HOME/.extra" ]]             && echo "  ${green}✓${reset} Extras          ~/.extra (private, gitignored)"
+[[ "$_ext_count" -gt 0 ]]          && _config "$_ok" "VS Code"    "settings + keybindings, $_ext_count extensions"
 
-# macOS defaults
+[[ -L "$HOME/Library/Application Support/Cursor/User/settings.json" ]] \
+                                    && _config "$_ok" "Cursor"     "settings.json"
+[[ -L "$HOME/.config/gh/config.yml" ]] \
+                                    && _config "$_ok" "GitHub CLI" "config.yml"
+[[ -f "$HOME/.extra" ]]            && _config "$_ok" "Extras"     "~/.extra (private, gitignored)"
+
 if [[ "$(defaults read com.apple.dock autohide 2>/dev/null)" == "1" ]] \
   && [[ "$(defaults read com.apple.dock tilesize 2>/dev/null)" == "48" ]]; then
-  echo "  ${green}✓${reset} macOS           system preferences applied"
+  _config "$_ok" "macOS" "system preferences applied"
 fi
-echo ""
 
 # ── Directories ─────────────────────────────────────────
-echo "${bold}  Directories${reset}"
-echo "  ${dim}─────────────────────────────────────────${reset}"
-echo "  ~/dotfiles    $([ -d "$HOME/dotfiles" ] && echo "${green}✓${reset} config repo" || echo "${red}✗${reset} missing")"
+_header "Directories"
+
+if [[ -d "$HOME/dotfiles" ]]; then
+  _dotfiles_dirty=$(git -C "$HOME/dotfiles" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+  _dot_status="${green}config repo${reset}"
+  [[ "$_dotfiles_dirty" -gt 0 ]] && _dot_status="${_dot_status} ${yellow}(${_dotfiles_dirty} modified)${reset}"
+  _row "~/dotfiles" "${_ok} ${_dot_status}"
+else
+  _row "~/dotfiles" "${_no} ${dim}missing${reset}"
+fi
 
 if [[ -d "$HOME/code" ]]; then
   _repo_count=$(find "$HOME/code" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
-  echo "  ~/code        ${green}✓${reset} $_repo_count repos"
+  _row "~/code" "${_ok} ${_repo_count} repos"
 else
-  echo "  ~/code        ${dim}not created yet${reset}  ${dim}~/dotfiles/clone-repos${reset}"
+  _row "~/code" "${dim}not created yet — run clone-repos${reset}"
 fi
 
 if [[ -n "$_work_gitdir" ]]; then
@@ -178,47 +381,67 @@ if [[ -n "$_work_gitdir" ]]; then
   _wdir="${_wdir%/}"
   if [[ -d "$_wdir" ]]; then
     _wrepo_count=$(find "$_wdir" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
-    echo "  ${_work_gitdir%/}         ${green}✓${reset} $_wrepo_count repos (work)"
+    _row "${_work_gitdir%/}" "${_ok} ${_wrepo_count} repos ${dim}(work)${reset}"
   else
-    echo "  ${_work_gitdir%/}         ${dim}empty${reset}"
+    _row "${_work_gitdir%/}" "${dim}empty${reset}"
   fi
 fi
 
-echo "  ~/Screenshots $([ -d "$HOME/Screenshots" ] && echo "${green}✓${reset} screenshots" || echo "${dim}not created${reset}")"
-echo ""
+_row "~/Screenshots" "$([ -d "$HOME/Screenshots" ] && echo "${_ok} screenshots" || echo "${dim}not created${reset}")"
 
-# ── Homebrew Health ─────────────────────────────────────
-echo "${bold}  Homebrew${reset}"
-echo "  ${dim}─────────────────────────────────────────${reset}"
-_formula_count=$(brew list --formula -1 2>/dev/null | wc -l | tr -d ' ')
-_cask_count=$(brew list --cask -1 2>/dev/null | wc -l | tr -d ' ')
-echo "  Installed     $_formula_count formulae, $_cask_count casks"
+# ── Network ─────────────────────────────────────────────
+_header "Network"
 
-if brew bundle check --file="$HOME/dotfiles/Brewfile" &>/dev/null 2>&1; then
-  echo "  Brewfile      ${green}✓${reset} all packages satisfied"
+_local_ip=$(ipconfig getifaddr en0 2>/dev/null || echo "${dim}disconnected${reset}")
+_row "Local IP" "$_local_ip"
+
+# Active listening ports (top 5, deduplicated)
+_active_ports=$(lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null | tail -n +2 \
+  | awk '{split($9,a,":"); printf "%s:%s\n", $1, a[length(a)]}' \
+  | sort -u | head -5)
+if [[ -n "$_active_ports" ]]; then
+  _first=true
+  while IFS= read -r _port_line; do
+    [[ -z "$_port_line" ]] && continue
+    if $_first; then
+      _row "Listening" "$_port_line"
+      _first=false
+    else
+      printf "  %-16s %s\n" "" "$_port_line"
+    fi
+  done <<< "$_active_ports"
 else
-  echo "  Brewfile      ${yellow}!${reset} some packages missing — run ${dim}dot${reset} to fix"
+  _row "Listening" "${dim}no active ports${reset}"
 fi
-echo ""
+
+# Docker
+if _has docker; then
+  if docker info &>/dev/null 2>&1; then
+    _containers=$(docker ps -q 2>/dev/null | wc -l | tr -d ' ')
+    _row "Docker" "${_ok} ${_containers} container(s) running"
+  else
+    _row "Docker" "${dim}installed but not running${reset}"
+  fi
+fi
 
 # ── Quick Reference ─────────────────────────────────────
-echo "${bold}  Quick Reference${reset}"
-echo "  ${dim}─────────────────────────────────────────${reset}"
-echo "  ${cyan}dot${reset}             Update everything (brew, volta, omz)"
-echo "  ${cyan}dot --macos${reset}     Update + reapply macOS defaults"
-echo "  ${cyan}myenv${reset}           Show this screen"
-echo "  ${cyan}reload${reset}          Restart shell (exec zsh)"
-echo "  ${cyan}opencode${reset}        AI coding agent"
+_header "Quick Reference"
+
+printf "  ${cyan}%-16s${reset} %s\n" "dot"         "Update everything (brew, volta, omz)"
+printf "  ${cyan}%-16s${reset} %s\n" "dot --macos"  "Update + reapply macOS defaults"
+printf "  ${cyan}%-16s${reset} %s\n" "myenv"        "Show this screen"
+printf "  ${cyan}%-16s${reset} %s\n" "reload"       "Restart shell (exec zsh)"
+printf "  ${cyan}%-16s${reset} %s\n" "opencode"     "AI coding agent"
 echo ""
-echo "  ${dim}Git${reset}             gs gd gp gl gc gco gb glog"
-echo "  ${dim}Navigation${reset}      .. ... .... ~"
-echo "  ${dim}Files${reset}           ll la lsd tree"
-echo "  ${dim}Network${reset}         myip localip flushdns"
-echo "  ${dim}System${reset}          afk emptytrash cleanup path"
-echo "  ${dim}Functions${reset}       mkcd serve port killport gopen extract"
+printf "  ${dim}%-16s${reset} %s\n" "Git"          "gs gd gp gl gc gco gb glog"
+printf "  ${dim}%-16s${reset} %s\n" "Navigation"   ".. ... .... ~"
+printf "  ${dim}%-16s${reset} %s\n" "Files"        "ll la lsd tree"
+printf "  ${dim}%-16s${reset} %s\n" "Network"      "myip localip flushdns"
+printf "  ${dim}%-16s${reset} %s\n" "System"       "afk emptytrash cleanup path"
+printf "  ${dim}%-16s${reset} %s\n" "Functions"    "mkcd serve port killport gopen extract"
 echo ""
-echo "  ${dim}Dotfiles        ~/dotfiles${reset}"
-echo "  ${dim}Work profile    ~/dotfiles/setup-work-profile${reset}"
-echo "  ${dim}Teardown        ~/dotfiles/teardown${reset}"
-echo "  ${dim}Extras          \$EDITOR ~/.extra${reset}"
+printf "  ${dim}Dotfiles        ~/dotfiles${reset}\n"
+printf "  ${dim}Work profile    ~/dotfiles/setup-work-profile${reset}\n"
+printf "  ${dim}Teardown        ~/dotfiles/teardown${reset}\n"
+printf "  ${dim}Extras          \$EDITOR ~/.extra${reset}\n"
 echo ""
