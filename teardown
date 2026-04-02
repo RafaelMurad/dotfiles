@@ -161,18 +161,31 @@ else
   info "No personal SSH key found — skipped"
 fi
 
-# ── 4. GitHub CLI auth ──────────────────────────────────
-step 4 "GitHub CLI"
+# ── 4. Git CLI auth ─────────────────────────────────────
+step 4 "Git CLI auth"
 
+# GitHub CLI
 if command -v gh &>/dev/null && gh auth status &>/dev/null 2>&1; then
-  if confirm "Log out of GitHub CLI?"; then
+  if confirm "Log out of GitHub CLI (gh)?"; then
     gh auth logout 2>/dev/null
     removed "gh auth"
   else
-    info "Skipped"
+    info "Skipped gh"
   fi
 else
-  info "Not authenticated — skipped"
+  info "gh — not authenticated"
+fi
+
+# GitLab CLI
+if command -v glab &>/dev/null && glab auth status &>/dev/null 2>&1; then
+  if confirm "Log out of GitLab CLI (glab)?"; then
+    glab auth logout 2>/dev/null
+    removed "glab auth"
+  else
+    info "Skipped glab"
+  fi
+else
+  info "glab — not installed or not authenticated"
 fi
 
 # ── 5. Oh My Zsh ───────────────────────────────────────

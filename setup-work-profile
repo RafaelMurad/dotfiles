@@ -117,12 +117,58 @@ echo ""
 # ── 3. Git host ─────────────────────────────────────────
 echo "${bold}  Git Host${reset}"
 
-ask "Work Git host [github.com]: "
-read work_host
-work_host="${work_host:-github.com}"
+echo ""
+echo "    ${yellow}1${reset}  GitHub (github.com)"
+echo "    ${yellow}2${reset}  GitHub Enterprise (self-hosted)"
+echo "    ${yellow}3${reset}  GitLab (gitlab.com)"
+echo "    ${yellow}4${reset}  GitLab Self-Managed"
+echo "    ${yellow}5${reset}  Bitbucket"
+echo "    ${yellow}6${reset}  Other"
+echo ""
+ask "Git provider [1]: "
+read _provider_choice
+_provider_choice="${_provider_choice:-1}"
+
+case "$_provider_choice" in
+  1)
+    work_host="github.com"
+    _provider="github"
+    ;;
+  2)
+    ask "GitHub Enterprise hostname: "
+    read work_host
+    [[ -z "$work_host" ]] && echo "\n  ${red}✗${reset} Hostname is required." && exit 1
+    _provider="github-enterprise"
+    ;;
+  3)
+    work_host="gitlab.com"
+    _provider="gitlab"
+    ;;
+  4)
+    ask "GitLab hostname: "
+    read work_host
+    [[ -z "$work_host" ]] && echo "\n  ${red}✗${reset} Hostname is required." && exit 1
+    _provider="gitlab"
+    ;;
+  5)
+    ask "Bitbucket hostname [bitbucket.org]: "
+    read work_host
+    work_host="${work_host:-bitbucket.org}"
+    _provider="bitbucket"
+    ;;
+  *)
+    ask "Git hostname: "
+    read work_host
+    [[ -z "$work_host" ]] && echo "\n  ${red}✗${reset} Hostname is required." && exit 1
+    _provider="other"
+    ;;
+esac
+
+ok "Provider: $_provider ($work_host)"
 
 SSH_CONFIG="$HOME/.ssh/config"
 
+# github.com needs an alias since personal already uses it
 if [[ "$work_host" == "github.com" ]]; then
   SSH_HOST_ALIAS="github.com-work"
 
@@ -184,21 +230,61 @@ fi
 info "Repos in $work_dir/ will auto-use work identity"
 echo ""
 
-# ── 5. GitHub CLI (optional) ─────────────────────────────
-echo "${bold}  GitHub CLI${reset}"
+# ── 5. CLI auth ──────────────────────────────────────────
 
-read -q "REPLY?  Authenticate gh with $work_host? (y/n) " || true
-echo ""
-if [[ "$REPLY" == "y" ]]; then
-  if [[ "$work_host" == "github.com" ]]; then
-    gh auth login --hostname github.com
-  else
-    gh auth login --hostname "$work_host"
-  fi
-  ok "Authenticated"
-else
-  info "Skipped"
-fi
+case "$_provider" in
+  github|github-enterprise)
+    echo "${bold}  GitHub CLI${reset}"
+    read -q "REPLY?  Authenticate gh with $work_host? (y/n) " || true
+    echo ""
+    if [[ "$REPLY" == "y" ]]; then
+      gh auth login --hostname "$work_host"
+      ok "Authenticated with gh"
+    else
+      info "Skipped — run ${dim}gh auth login --hostname $work_host${reset} anytime"
+    fi
+    ;;
+  gitlab)
+    echo "${bold}  GitLab CLI${reset}"
+
+    # Install glab if not present
+    if ! command -v glab &>/dev/null; then
+      info "glab (GitLab CLI) is not installed"
+      read -q "REPLY?  Install glab via Homebrew? (y/n) " || true
+      echo ""
+      if [[ "$REPLY" == "y" ]]; then
+        brew install glab 2>/dev/null
+        ok "glab installed"
+      else
+        info "Skipped — install later with: brew install glab"
+      fi
+    fi
+
+    if command -v glab &>/dev/null; then
+      read -q "REPLY?  Authenticate glab with $work_host? (y/n) " || true
+      echo ""
+      if [[ "$REPLY" == "y" ]]; then
+        if [[ "$work_host" == "gitlab.com" ]]; then
+          glab auth login
+        else
+          glab auth login --hostname "$work_host"
+        fi
+        ok "Authenticated with glab"
+      else
+        info "Skipped — run ${dim}glab auth login${reset} anytime"
+      fi
+    fi
+    ;;
+  bitbucket)
+    echo "${bold}  Bitbucket${reset}"
+    info "No official Bitbucket CLI — SSH key is your auth method"
+    info "Add your public key at: https://$work_host/account/settings/ssh-keys/"
+    ;;
+  *)
+    echo "${bold}  CLI Auth${reset}"
+    info "No known CLI for $work_host — SSH key is your auth method"
+    ;;
+esac
 echo ""
 
 # ── 6. VS Code alias (optional) ─────────────────────────
@@ -229,13 +315,33 @@ echo "${green}${bold}  Work profile ready!${reset}"
 echo ""
 echo "${dim}  $work_name <$work_email>"
 echo "  Directory: $work_dir"
-echo "  Git host:  $work_host"
+echo "  Git host:  $work_host ($_provider)"
 echo "  SSH key:   $WORK_KEY${reset}"
 echo ""
-if [[ "$work_host" == "github.com" ]]; then
-  echo "  Clone work repos with:"
-  echo "  ${bold}git clone git@github.com-work:org/repo.git $work_dir/repo${reset}"
-  echo ""
-fi
+
+# Show provider-specific clone instructions
+case "$_provider" in
+  github)
+    echo "  Clone work repos with:"
+    echo "  ${bold}git clone git@github.com-work:org/repo.git $work_dir/repo${reset}"
+    ;;
+  github-enterprise)
+    echo "  Clone work repos with:"
+    echo "  ${bold}git clone git@$work_host:org/repo.git $work_dir/repo${reset}"
+    ;;
+  gitlab)
+    echo "  Clone work repos with:"
+    echo "  ${bold}git clone git@$work_host:org/repo.git $work_dir/repo${reset}"
+    ;;
+  bitbucket)
+    echo "  Clone work repos with:"
+    echo "  ${bold}git clone git@$work_host:org/repo.git $work_dir/repo${reset}"
+    ;;
+  *)
+    echo "  Clone work repos with:"
+    echo "  ${bold}git clone git@$work_host:org/repo.git $work_dir/repo${reset}"
+    ;;
+esac
+echo ""
 echo "${dim}  Restart your terminal: exec zsh${reset}"
 echo ""
