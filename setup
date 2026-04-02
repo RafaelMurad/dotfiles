@@ -167,8 +167,10 @@ step 9 "macOS defaults"
 echo ""
 read -q "REPLY?  Apply macOS system preferences? (y/n) " || true
 echo ""
+_did_macos=false
 if [[ "$REPLY" == "y" ]]; then
   "$DOTFILES_DIR/.macos"
+  _did_macos=true
 else
   info "Skipped — run ${bold}./.macos${reset} anytime"
 fi
@@ -178,8 +180,10 @@ step 10 "Work profile"
 echo ""
 read -q "REPLY?  Set up a work profile now? (y/n) " || true
 echo ""
+_did_work=false
 if [[ "$REPLY" == "y" ]]; then
   "$DOTFILES_DIR/setup-work-profile"
+  _did_work=true
 else
   info "Skipped — run ${bold}./setup-work-profile${reset} anytime"
 fi
@@ -187,7 +191,43 @@ fi
 # ── Done ─────────────────────────────────────────────────
 echo ""
 echo "${green}${bold}  Setup complete!${reset}"
-echo "${dim}  Restart your terminal: exec zsh${reset}"
+echo ""
+
+# Summary
+echo "${bold}  What was installed${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+_node_v=$(node --version 2>/dev/null || echo "n/a")
+_pnpm_v=$(pnpm --version 2>/dev/null || echo "n/a")
+echo "  ${green}✓${reset} Homebrew        $(brew --version 2>/dev/null | head -1 | cut -d' ' -f2)"
+echo "  ${green}✓${reset} Volta + Node    $_node_v"
+echo "  ${green}✓${reset} pnpm            $_pnpm_v"
+echo "  ${green}✓${reset} Oh My Zsh       $([ -d "$HOME/.oh-my-zsh" ] && echo "installed" || echo "missing")"
+echo "  ${green}✓${reset} GitHub CLI      $(gh --version 2>/dev/null | head -1 | cut -d' ' -f3)"
+echo "  ${green}✓${reset} Packages        $(brew list --formula -1 2>/dev/null | wc -l | tr -d ' ') formulae, $(brew list --cask -1 2>/dev/null | wc -l | tr -d ' ') casks"
+echo "  ${green}✓${reset} Configs         shell, git, SSH, VS Code, Cursor, gh"
+echo ""
+
+# Next steps (only show what wasn't done)
+_next=1
+echo "${bold}  Next steps${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+echo "  ${yellow}$_next${reset}  Restart your shell           ${dim}exec zsh${reset}"; ((_next++))
+echo "  ${yellow}$_next${reset}  Clone your repos             ${dim}~/dotfiles/clone-repos${reset}"; ((_next++))
+if [[ "$_did_work" == "false" ]]; then
+  echo "  ${yellow}$_next${reset}  Set up a work profile        ${dim}~/dotfiles/setup-work-profile${reset}"; ((_next++))
+fi
+if [[ "$_did_macos" == "false" ]]; then
+  echo "  ${yellow}$_next${reset}  Apply macOS defaults         ${dim}~/dotfiles/.macos${reset}"; ((_next++))
+fi
+echo "  ${yellow}$_next${reset}  Update everything later       ${dim}dot${reset}"
+echo ""
+
+echo "${bold}  Verify${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+echo "  ${dim}brew bundle check --file=~/dotfiles/Brewfile${reset}"
+echo "  ${dim}volta list all${reset}"
+echo "  ${dim}gh auth status${reset}"
+echo "  ${dim}ssh -T git@github.com${reset}"
 echo ""
 
 } # end _setup
