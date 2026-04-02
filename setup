@@ -12,6 +12,9 @@ if [[ ! -d "$HOME/dotfiles/.git" ]]; then
   exec "$HOME/dotfiles/setup" < /dev/tty
 fi
 
+# Restore TTY if stdin was piped (e.g. curl | zsh)
+[[ ! -t 0 ]] && exec < /dev/tty
+
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Colors
