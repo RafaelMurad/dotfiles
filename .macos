@@ -4,6 +4,9 @@
 # Inspired by mathiasbynens/dotfiles, driesvints/dotfiles
 # Note: no set -e — some defaults commands fail on certain macOS versions
 
+# Ensure Homebrew is in PATH (for dockutil, etc.)
+[[ -f /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
+
 bold="\033[1m"
 dim="\033[2m"
 green="\033[32m"
