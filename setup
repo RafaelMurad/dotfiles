@@ -66,8 +66,12 @@ fi
 
 # ── 2. Packages ─────────────────────────────────────────
 step 2 "Brewfile (packages, apps, extensions)"
-brew bundle --file="$DOTFILES_DIR/Brewfile" --quiet
-ok "All packages installed"
+if brew bundle check --file="$DOTFILES_DIR/Brewfile" &>/dev/null; then
+  skip "Brewfile"
+else
+  brew bundle --file="$DOTFILES_DIR/Brewfile" --quiet
+  ok "All packages installed"
+fi
 
 # ── 3. Volta + Node ─────────────────────────────────────
 step 3 "Volta + Node"
