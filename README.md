@@ -7,7 +7,12 @@ Personal development environment configuration.
 On a fresh machine:
 
 ```bash
-xcode-select --install
+xcode-select --install   # skip if already installed
+```
+
+Then run setup:
+
+```bash
 curl -fsSL https://raw.githubusercontent.com/RafaelMurad/dotfiles/main/setup | zsh
 ```
 
