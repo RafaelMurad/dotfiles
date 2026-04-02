@@ -112,7 +112,6 @@ link_file "$DOTFILES_DIR/.aliases"    "$HOME/.aliases"
 link_file "$DOTFILES_DIR/.functions"  "$HOME/.functions"
 
 link_file "$DOTFILES_DIR/.gitignore" "$HOME/.gitignore_global"
-git config --global core.excludesfile "$HOME/.gitignore_global"
 
 mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
 link_file "$DOTFILES_DIR/.ssh/config" "$HOME/.ssh/config"

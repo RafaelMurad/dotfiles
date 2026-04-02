@@ -1,6 +1,8 @@
 [user]
 	email = rflmurad@gmail.com
 	name = Rafael Murad
+[core]
+	excludesfile = ~/.gitignore_global
 [sequence]
 	editor = code --wait --reuse-window
 [push]
