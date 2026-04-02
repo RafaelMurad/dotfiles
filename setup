@@ -193,21 +193,100 @@ echo ""
 echo "${green}${bold}  Setup complete!${reset}"
 echo ""
 
-# Summary
-echo "${bold}  What was installed${reset}"
+# ── What was installed ──────────────────────────────────
+echo "${bold}  Tools & Runtimes${reset}"
 echo "  ${dim}─────────────────────────────────────────${reset}"
-_node_v=$(node --version 2>/dev/null || echo "n/a")
-_pnpm_v=$(pnpm --version 2>/dev/null || echo "n/a")
 echo "  ${green}✓${reset} Homebrew        $(brew --version 2>/dev/null | head -1 | cut -d' ' -f2)"
-echo "  ${green}✓${reset} Volta + Node    $_node_v"
-echo "  ${green}✓${reset} pnpm            $_pnpm_v"
+echo "  ${green}✓${reset} Git             $(git --version 2>/dev/null | cut -d' ' -f3)"
+echo "  ${green}✓${reset} Volta           $(volta --version 2>/dev/null || echo 'n/a')"
+echo "  ${green}✓${reset} Node            $(node --version 2>/dev/null || echo 'n/a')"
+echo "  ${green}✓${reset} pnpm            $(pnpm --version 2>/dev/null || echo 'n/a')"
+echo "  ${green}✓${reset} yarn            $(yarn --version 2>/dev/null || echo 'n/a')"
 echo "  ${green}✓${reset} Oh My Zsh       $([ -d "$HOME/.oh-my-zsh" ] && echo "installed" || echo "missing")"
-echo "  ${green}✓${reset} GitHub CLI      $(gh --version 2>/dev/null | head -1 | cut -d' ' -f3)"
-echo "  ${green}✓${reset} Packages        $(brew list --formula -1 2>/dev/null | wc -l | tr -d ' ') formulae, $(brew list --cask -1 2>/dev/null | wc -l | tr -d ' ') casks"
-echo "  ${green}✓${reset} Configs         shell, git, SSH, VS Code, Cursor, gh"
 echo ""
 
-# Next steps (only show what wasn't done)
+echo "${bold}  CLIs${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+echo "  ${green}✓${reset} gh              $(gh --version 2>/dev/null | head -1 | cut -d' ' -f3)          ${dim}GitHub${reset}"
+echo "  ${green}✓${reset} vercel          $(vercel --version 2>/dev/null | head -1 | tr -d ' ')   ${dim}Deployments${reset}"
+echo "  ${green}✓${reset} opencode        $(opencode --version 2>/dev/null | head -1 || echo 'n/a')          ${dim}AI coding agent${reset}"
+echo "  ${green}✓${reset} ollama          $(ollama --version 2>/dev/null | awk '{print $NF}' || echo 'n/a')          ${dim}Local LLMs${reset}"
+echo "  ${green}✓${reset} fzf             $(fzf --version 2>/dev/null | awk '{print $1}')          ${dim}Fuzzy finder${reset}"
+echo "  ${green}✓${reset} btop            $(btop --version 2>/dev/null | awk '{print $2}' || echo 'n/a')          ${dim}System monitor${reset}"
+echo "  ${green}✓${reset} tree            $(tree --version 2>/dev/null | awk '{print $2}')          ${dim}Directory tree${reset}"
+echo "  ${green}✓${reset} shellcheck      $(shellcheck --version 2>/dev/null | grep version: | awk '{print $2}')          ${dim}Shell linter${reset}"
+echo ""
+
+echo "${bold}  Apps${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+echo "  ${green}✓${reset} Ghostty                          ${dim}Terminal${reset}"
+echo "  ${green}✓${reset} VS Code                          ${dim}Editor${reset}"
+echo "  ${green}✓${reset} Cursor                           ${dim}AI editor${reset}"
+echo "  ${green}✓${reset} Claude Code                      ${dim}AI terminal${reset}"
+echo "  ${green}✓${reset} Figma                            ${dim}Design${reset}"
+echo "  ${green}✓${reset} Spotify                          ${dim}Music${reset}"
+echo "  ${green}✓${reset} Google Cloud SDK                  ${dim}gcloud, gsutil, bq${reset}"
+echo ""
+
+echo "${bold}  Configs${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+echo "  ${green}✓${reset} Shell           .zshrc, .zprofile, .zshenv, .aliases, .functions"
+echo "  ${green}✓${reset} Git             .gitconfig, .gitignore_global"
+echo "  ${green}✓${reset} SSH             ~/.ssh/config"
+echo "  ${green}✓${reset} VS Code         settings.json, keybindings.json, ${dim}$(brew list --vscode 2>/dev/null | wc -l | tr -d ' ' || echo '25') extensions${reset}"
+echo "  ${green}✓${reset} Cursor          settings.json"
+echo "  ${green}✓${reset} GitHub CLI      config.yml"
+if [[ "$_did_macos" == "true" ]]; then
+  echo "  ${green}✓${reset} macOS           system preferences applied"
+fi
+echo ""
+
+# ── Try it out ──────────────────────────────────────────
+_n=1
+echo "${bold}  Try it out${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+echo "  ${yellow}$_n${reset}  Open Ghostty (your new terminal)"
+echo "     ${dim}# it's in your Dock — all settings carry over${reset}"; ((_n++))
+echo ""
+echo "  ${yellow}$_n${reset}  Fuzzy-find a file"
+echo "     ${dim}fzf${reset}"; ((_n++))
+echo ""
+echo "  ${yellow}$_n${reset}  Monitor your system"
+echo "     ${dim}btop${reset}"; ((_n++))
+echo ""
+echo "  ${yellow}$_n${reset}  Check your Git identity"
+echo "     ${dim}git config user.name && git config user.email${reset}"
+echo "     ${dim}# Rafael Murad <rflmurad@gmail.com>${reset}"; ((_n++))
+echo ""
+echo "  ${yellow}$_n${reset}  Test GitHub SSH"
+echo "     ${dim}ssh -T git@github.com${reset}"; ((_n++))
+echo ""
+echo "  ${yellow}$_n${reset}  Check GitHub CLI auth"
+echo "     ${dim}gh auth status${reset}"; ((_n++))
+echo ""
+echo "  ${yellow}$_n${reset}  Verify all Homebrew packages"
+echo "     ${dim}brew bundle check --file=~/dotfiles/Brewfile${reset}"; ((_n++))
+echo ""
+echo "  ${yellow}$_n${reset}  List Node, pnpm, yarn versions"
+echo "     ${dim}volta list all${reset}"; ((_n++))
+echo ""
+echo "  ${yellow}$_n${reset}  Run an AI coding session"
+echo "     ${dim}opencode${reset}"; ((_n++))
+echo ""
+echo "  ${yellow}$_n${reset}  Try your shell aliases"
+echo "     ${dim}ll              # detailed listing${reset}"
+echo "     ${dim}gs              # git status${reset}"
+echo "     ${dim}glog            # pretty git log${reset}"
+echo "     ${dim}myip            # your public IP${reset}"
+echo "     ${dim}path            # list PATH entries${reset}"; ((_n++))
+echo ""
+echo "  ${yellow}$_n${reset}  Try your shell functions"
+echo "     ${dim}mkcd test-dir   # mkdir + cd${reset}"
+echo "     ${dim}serve           # local HTTP server${reset}"
+echo "     ${dim}port 3000       # what's on port 3000?${reset}"; ((_n++))
+echo ""
+
+# ── Next steps ──────────────────────────────────────────
 _next=1
 echo "${bold}  Next steps${reset}"
 echo "  ${dim}─────────────────────────────────────────${reset}"
@@ -222,12 +301,14 @@ fi
 echo "  ${yellow}$_next${reset}  Update everything later       ${dim}dot${reset}"
 echo ""
 
-echo "${bold}  Verify${reset}"
+# ── Manage ──────────────────────────────────────────────
+echo "${bold}  Manage${reset}"
 echo "  ${dim}─────────────────────────────────────────${reset}"
-echo "  ${dim}brew bundle check --file=~/dotfiles/Brewfile${reset}"
-echo "  ${dim}volta list all${reset}"
-echo "  ${dim}gh auth status${reset}"
-echo "  ${dim}ssh -T git@github.com${reset}"
+echo "  Update everything      ${dim}dot${reset}"
+echo "  Update + macOS prefs   ${dim}dot --macos${reset}"
+echo "  Work profile wizard    ${dim}~/dotfiles/setup-work-profile${reset}"
+echo "  Undo everything        ${dim}~/dotfiles/teardown${reset}"
+echo "  Edit your extras       ${dim}\$EDITOR ~/.extra${reset}"
 echo ""
 
 } # end _setup
