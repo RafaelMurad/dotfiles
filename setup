@@ -164,28 +164,58 @@ fi
 
 # ── 9. macOS defaults ───────────────────────────────────
 step 9 "macOS defaults"
-echo ""
-read -q "REPLY?  Apply macOS system preferences? (y/n) " || true
-echo ""
 _did_macos=false
-if [[ "$REPLY" == "y" ]]; then
-  "$DOTFILES_DIR/.macos"
+
+# Detect if our defaults have already been applied (check a few distinctive ones)
+_macos_applied=false
+if [[ "$(defaults read com.apple.dock autohide 2>/dev/null)" == "1" ]] \
+  && [[ "$(defaults read com.apple.dock tilesize 2>/dev/null)" == "48" ]] \
+  && [[ "$(defaults read NSGlobalDomain ApplePressAndHoldEnabled 2>/dev/null)" == "0" ]]; then
+  _macos_applied=true
+fi
+
+if $_macos_applied; then
+  skip "macOS defaults"
   _did_macos=true
 else
-  info "Skipped — run ${bold}./.macos${reset} anytime"
+  echo ""
+  read -q "REPLY?  Apply macOS system preferences? (y/n) " || true
+  echo ""
+  if [[ "$REPLY" == "y" ]]; then
+    "$DOTFILES_DIR/.macos"
+    _did_macos=true
+  else
+    info "Skipped — run ${bold}./.macos${reset} anytime"
+  fi
 fi
 
 # ── 10. Work profile ────────────────────────────────────
 step 10 "Work profile"
-echo ""
-read -q "REPLY?  Set up a work profile now? (y/n) " || true
-echo ""
 _did_work=false
-if [[ "$REPLY" == "y" ]]; then
-  "$DOTFILES_DIR/setup-work-profile"
+
+# Detect if a work profile already exists
+if [[ -f "$HOME/.gitconfig-work" ]]; then
+  _work_email=$(git config -f "$HOME/.gitconfig-work" user.email 2>/dev/null)
+  _work_name=$(git config -f "$HOME/.gitconfig-work" user.name 2>/dev/null)
+  skip "Work profile ($_work_name <$_work_email>)"
   _did_work=true
+
+  echo ""
+  read -q "REPLY?  Reconfigure work profile? (y/n) " || true
+  echo ""
+  if [[ "$REPLY" == "y" ]]; then
+    "$DOTFILES_DIR/setup-work-profile"
+  fi
 else
-  info "Skipped — run ${bold}./setup-work-profile${reset} anytime"
+  echo ""
+  read -q "REPLY?  Set up a work profile now? (y/n) " || true
+  echo ""
+  if [[ "$REPLY" == "y" ]]; then
+    "$DOTFILES_DIR/setup-work-profile"
+    _did_work=true
+  else
+    info "Skipped — run ${bold}./setup-work-profile${reset} anytime"
+  fi
 fi
 
 # ── Done ─────────────────────────────────────────────────
