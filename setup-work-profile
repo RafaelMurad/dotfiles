@@ -264,11 +264,7 @@ case "$_provider" in
       read -q "REPLY?  Authenticate glab with $work_host? (y/n) " || true
       echo ""
       if [[ "$REPLY" == "y" ]]; then
-        if [[ "$work_host" == "gitlab.com" ]]; then
-          glab auth login
-        else
-          glab auth login --hostname "$work_host"
-        fi
+        glab auth login --hostname "$work_host"
         ok "Authenticated with glab"
       else
         info "Skipped — run ${dim}glab auth login${reset} anytime"
