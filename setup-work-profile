@@ -350,29 +350,86 @@ _completed_steps+=("VS Code alias")
 echo ""
 echo "${green}${bold}  Work profile ready!${reset}"
 echo ""
-echo "${bold}  Completed${reset}"
+
+# What was configured
+echo "${bold}  What was configured${reset}"
 echo "  ${dim}─────────────────────────────────────────${reset}"
 for _s in "${_completed_steps[@]}"; do
   echo "  ${green}✓${reset} $_s"
 done
 echo ""
-echo "${dim}  $work_name <$work_email>"
-echo "  Directory: $work_dir"
-echo "  Git host:  $work_host ($_provider)"
-echo "  SSH key:   $WORK_KEY${reset}"
+
+# Profile details
+echo "${bold}  Profile${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+echo "  Name:       $work_name"
+echo "  Email:      $work_email"
+echo "  Directory:  ${work_dir/#$HOME/~}"
+echo "  Git host:   $work_host (${_provider})"
+echo "  SSH key:    ${WORK_KEY/#$HOME/~}"
+if command -v glab &>/dev/null && [[ "$_provider" == "gitlab" ]]; then
+  echo "  CLI:        glab $(glab --version 2>/dev/null | head -1 | awk '{print $3}')"
+elif [[ "$_provider" == "github" || "$_provider" == "github-enterprise" ]]; then
+  echo "  CLI:        gh $(gh --version 2>/dev/null | head -1 | cut -d' ' -f3)"
+fi
 echo ""
 
-# Show provider-specific clone instructions
+# Try it out
+echo "${bold}  Try it out${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+
+# Clone a repo
 case "$_provider" in
   github)
-    echo "  Clone work repos with:"
-    echo "  ${bold}git clone git@github.com-work:org/repo.git $work_dir/repo${reset}"
+    echo "  ${yellow}1${reset}  Clone a work repo"
+    echo "     ${dim}git clone git@github.com-work:org/repo.git ${work_dir/#$HOME/~}/repo${reset}"
     ;;
   *)
-    echo "  Clone work repos with:"
-    echo "  ${bold}git clone git@$work_host:org/repo.git $work_dir/repo${reset}"
+    echo "  ${yellow}1${reset}  Clone a work repo"
+    echo "     ${dim}git clone git@$work_host:org/repo.git ${work_dir/#$HOME/~}/repo${reset}"
     ;;
 esac
+
+# Verify identity in a work repo
+echo "  ${yellow}2${reset}  Verify work identity in a repo"
+echo "     ${dim}cd ${work_dir/#$HOME/~}/some-repo && git config user.email${reset}"
+echo "     ${dim}# should output: $work_email${reset}"
+
+# SSH connection test
+echo "  ${yellow}3${reset}  Test SSH connection"
+echo "     ${dim}ssh -T git@$work_host${reset}"
+
+# CLI auth status
+case "$_provider" in
+  github|github-enterprise)
+    echo "  ${yellow}4${reset}  Check CLI auth"
+    echo "     ${dim}gh auth status --hostname $work_host${reset}"
+    ;;
+  gitlab)
+    if command -v glab &>/dev/null; then
+      echo "  ${yellow}4${reset}  Check CLI auth"
+      echo "     ${dim}glab auth status --hostname $work_host${reset}"
+    fi
+    ;;
+esac
+
+# Verify SSH key
+echo "  ${yellow}5${reset}  View your public key"
+echo "     ${dim}cat ${WORK_KEY/#$HOME/~}.pub${reset}"
+
+# VS Code
+if grep -q "alias codework=" "$HOME/.zshrc" 2>/dev/null; then
+  echo "  ${yellow}6${reset}  Open VS Code with work profile"
+  echo "     ${dim}codework .${reset}"
+fi
+echo ""
+
+# Update later
+echo "${bold}  Manage${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+echo "  Re-run this wizard     ${dim}~/dotfiles/setup-work-profile${reset}"
+echo "  Update everything      ${dim}dot${reset}"
+echo "  Remove work profile    ${dim}~/dotfiles/teardown${reset} ${dim}(step 2)${reset}"
 echo ""
 
 echo "  ${dim}─────────────────────────────────────────${reset}"
