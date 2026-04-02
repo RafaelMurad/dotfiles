@@ -3,16 +3,32 @@
 	name = Rafael Murad
 [core]
 	excludesfile = ~/.gitignore_global
+	pager = delta
+[interactive]
+	diffFilter = delta --color-only
+[delta]
+	navigate = true
+	side-by-side = true
+	line-numbers = true
 [sequence]
 	editor = code --wait --reuse-window
 [push]
 	autoSetupRemote = true
 [pull]
 	rebase = true
+[fetch]
+	prune = true
+[merge]
+	conflictstyle = zdiff3
+[diff]
+	algorithm = histogram
+	colorMoved = default
+[rerere]
+	enabled = true
 [init]
 	defaultBranch = main
 [alias]
-	branch-clean = "!f() { git checkout main && git pull origin main && git checkout -b \"$1\"; }; f"
+	fresh-branch = "!f() { git checkout main && git pull origin main && git checkout -b \"$1\"; }; f"
 [filter "lfs"]
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f

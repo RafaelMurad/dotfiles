@@ -67,6 +67,13 @@ _ver_fzf()        { fzf --version 2>/dev/null | awk '{print $1}'; }
 _ver_btop()       { btop --version 2>/dev/null | head -1 | sed 's/\x1b\[[0-9;]*m//g' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'; }
 _ver_tree()       { tree --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'; }
 _ver_shellcheck() { shellcheck --version 2>/dev/null | grep '^version:' | awk '{print $2}'; }
+_ver_rg()         { rg --version 2>/dev/null | head -1 | awk '{print $2}'; }
+_ver_bat()        { bat --version 2>/dev/null | awk '{print $2}'; }
+_ver_eza()        { eza --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'; }
+_ver_fd()         { fd --version 2>/dev/null | awk '{print $2}'; }
+_ver_jq()         { jq --version 2>/dev/null | tr -d 'jq-'; }
+_ver_delta()      { delta --version 2>/dev/null | awk '{print $2}'; }
+_ver_zoxide()     { zoxide --version 2>/dev/null | awk '{print $2}'; }
 
 # ────────────────────────────────────────────────────────
 # Banner
@@ -189,6 +196,13 @@ _tool "vercel"     "vercel"      "$(_ver_vercel)"     "Deployments"
 _tool "opencode"   "opencode"    "$(_ver_opencode)"   "AI coding agent"
 _tool "ollama"     "ollama"      "$(_ver_ollama)"     "Local LLMs"
 _tool "fzf"        "fzf"         "$(_ver_fzf)"        "Fuzzy finder"
+_tool "rg"         "ripgrep"     "$(_ver_rg)"         "Fast regex search"
+_tool "bat"        "bat"         "$(_ver_bat)"        "Cat with syntax highlighting"
+_tool "eza"        "eza"         "$(_ver_eza)"        "Modern ls replacement"
+_tool "fd"         "fd"          "$(_ver_fd)"         "Fast find alternative"
+_tool "jq"         "jq"          "$(_ver_jq)"         "JSON processor"
+_tool "delta"      "delta"       "$(_ver_delta)"      "Better git diffs"
+_tool "zoxide"     "zoxide"      "$(_ver_zoxide)"     "Smarter cd command"
 _tool "btop"       "btop"        "$(_ver_btop)"       "System monitor"
 _tool "tree"       "tree"        "$(_ver_tree)"       "Directory tree"
 _tool "shellcheck" "shellcheck"  "$(_ver_shellcheck)" "Shell linter"
@@ -350,6 +364,9 @@ _ext_count=$(code --list-extensions 2>/dev/null | wc -l | tr -d ' ')
                                     && _config "$_ok" "Cursor"     "settings.json"
 [[ -L "$HOME/.config/gh/config.yml" ]] \
                                     && _config "$_ok" "GitHub CLI" "config.yml"
+[[ -L "$HOME/.config/ghostty/config" ]] \
+                                    && _config "$_ok" "Ghostty"    "JetBrains Mono, Dracula, quick terminal"
+[[ -L "$HOME/.editorconfig" ]]      && _config "$_ok" "EditorCfg"  ".editorconfig (cross-editor formatting)"
 [[ -f "$HOME/.extra" ]]            && _config "$_ok" "Extras"     "~/.extra (private, gitignored)"
 
 if [[ "$(defaults read com.apple.dock autohide 2>/dev/null)" == "1" ]] \
@@ -434,8 +451,8 @@ printf "  ${cyan}%-16s${reset} %s\n" "reload"       "Restart shell (exec zsh)"
 printf "  ${cyan}%-16s${reset} %s\n" "opencode"     "AI coding agent"
 echo ""
 printf "  ${dim}%-16s${reset} %s\n" "Git"          "gs gd gp gl gc gco gb glog"
-printf "  ${dim}%-16s${reset} %s\n" "Navigation"   ".. ... .... ~"
-printf "  ${dim}%-16s${reset} %s\n" "Files"        "ll la lsd tree"
+printf "  ${dim}%-16s${reset} %s\n" "Navigation"   ".. ... .... ~ z (zoxide)"
+printf "  ${dim}%-16s${reset} %s\n" "Files"        "ll la lsd lt tree bat"
 printf "  ${dim}%-16s${reset} %s\n" "Network"      "myip localip flushdns"
 printf "  ${dim}%-16s${reset} %s\n" "System"       "afk emptytrash cleanup path"
 printf "  ${dim}%-16s${reset} %s\n" "Functions"    "mkcd serve port killport gopen extract"

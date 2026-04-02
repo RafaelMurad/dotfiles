@@ -4,6 +4,14 @@
   "git.confirmSync": false,
   "editor.mouseWheelZoom": true,
   "editor.fontSize": 15,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": true,
+  "editor.tabSize": 2,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "terminal.integrated.defaultProfile.osx": "zsh",
   "diffEditor.renderSideBySide": true,
   "extensions.ignoreRecommendations": true,
   "security.workspace.trust.untrustedFiles": "open",
@@ -44,6 +52,10 @@
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "tailwindCSS.emmetCompletions": true,
   "githubPullRequests.pullBranch": "never",
   "githubPullRequests.createOnPublishBranch": "never",
   "workbench.secondarySideBar.defaultVisibility": "visible"

@@ -67,8 +67,10 @@ if confirm "Remove dotfile symlinks and restore backups?"; then
   unlink_file "$HOME/.aliases"
   unlink_file "$HOME/.functions"
   unlink_file "$HOME/.gitignore_global"
+  unlink_file "$HOME/.editorconfig"
   unlink_file "$HOME/.ssh/config"
   unlink_file "$HOME/.config/gh/config.yml"
+  unlink_file "$HOME/.config/ghostty/config"
 
   # Editor settings
   unlink_file "$HOME/Library/Application Support/Code/User/settings.json"
@@ -121,11 +123,11 @@ if $_has_work; then
       fi
     fi
 
-    # Remove codework alias from .zshrc (if it exists and is not a symlink)
-    if [[ -f "$HOME/.zshrc" && ! -L "$HOME/.zshrc" ]]; then
-      if grep -q 'alias codework=' "$HOME/.zshrc" 2>/dev/null; then
-        sed -i '' '/alias codework=/d' "$HOME/.zshrc" 2>/dev/null
-        removed "codework alias from .zshrc"
+    # Remove codework alias from .extra (if it exists)
+    if [[ -f "$HOME/.extra" ]]; then
+      if grep -q 'alias codework=' "$HOME/.extra" 2>/dev/null; then
+        sed -i '' '/alias codework=/d' "$HOME/.extra" 2>/dev/null
+        removed "codework alias from .extra"
       fi
     fi
 

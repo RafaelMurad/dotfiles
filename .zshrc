@@ -1,7 +1,7 @@
 # Oh My Zsh
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="robbyrussell"
-plugins=(git)
+plugins=(git fzf zsh-autosuggestions zsh-syntax-highlighting)
 source $ZSH/oh-my-zsh.sh
 
 # Dotfiles bin
@@ -11,6 +11,9 @@ export PATH="$HOME/dotfiles/bin:$PATH"
 [ -f "$HOME/.aliases" ] && source "$HOME/.aliases"
 [ -f "$HOME/.functions" ] && source "$HOME/.functions"
 [ -f "$HOME/.extra" ] && source "$HOME/.extra"
+
+# zoxide (smarter cd)
+command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
 
 # pnpm
 export PNPM_HOME="$HOME/Library/pnpm"

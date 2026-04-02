@@ -23,4 +23,6 @@ jobs:
             setup-work-profile \
             .macos \
             bin/dot \
-            clone-repos
+            bin/myenv \
+            clone-repos \
+            teardown

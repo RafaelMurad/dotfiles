@@ -101,6 +101,23 @@ else
   skip "Oh My Zsh"
 fi
 
+# Install custom plugins if missing
+ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+
+if [[ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]]; then
+  git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
+  ok "zsh-autosuggestions"
+else
+  skip "zsh-autosuggestions"
+fi
+
+if [[ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]]; then
+  git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
+  ok "zsh-syntax-highlighting"
+else
+  skip "zsh-syntax-highlighting"
+fi
+
 # ── 5. Dotfiles ─────────────────────────────────────────
 step 5 "Symlink dotfiles"
 
@@ -111,13 +128,18 @@ link_file "$DOTFILES_DIR/.gitconfig"  "$HOME/.gitconfig"
 link_file "$DOTFILES_DIR/.aliases"    "$HOME/.aliases"
 link_file "$DOTFILES_DIR/.functions"  "$HOME/.functions"
 
-link_file "$DOTFILES_DIR/.gitignore" "$HOME/.gitignore_global"
+link_file "$DOTFILES_DIR/.gitignore_global" "$HOME/.gitignore_global"
+
+link_file "$DOTFILES_DIR/.editorconfig" "$HOME/.editorconfig"
 
 mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
 link_file "$DOTFILES_DIR/.ssh/config" "$HOME/.ssh/config"
 
 mkdir -p "$HOME/.config/gh"
 link_file "$DOTFILES_DIR/gh/config.yml" "$HOME/.config/gh/config.yml"
+
+mkdir -p "$HOME/.config/ghostty"
+link_file "$DOTFILES_DIR/ghostty/config" "$HOME/.config/ghostty/config"
 
 # ── 6. Editor settings ──────────────────────────────────
 step 6 "Editor settings"
@@ -240,11 +262,18 @@ echo "  ${dim}──────────────────────
 echo "  ${green}✓${reset} gh              $(gh --version 2>/dev/null | head -1 | cut -d' ' -f3)          ${dim}GitHub${reset}"
 echo "  ${green}✓${reset} vercel          $(vercel --version 2>/dev/null | head -1 | tr -d ' ')   ${dim}Deployments${reset}"
 echo "  ${green}✓${reset} opencode        $(opencode --version 2>/dev/null | head -1 || echo 'n/a')          ${dim}AI coding agent${reset}"
-echo "  ${green}✓${reset} ollama          $(ollama --version 2>/dev/null | awk '{print $NF}' || echo 'n/a')          ${dim}Local LLMs${reset}"
+echo "  ${green}✓${reset} ollama          $(ollama --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo 'n/a')          ${dim}Local LLMs${reset}"
 echo "  ${green}✓${reset} fzf             $(fzf --version 2>/dev/null | awk '{print $1}')          ${dim}Fuzzy finder${reset}"
-echo "  ${green}✓${reset} btop            $(btop --version 2>/dev/null | awk '{print $2}' || echo 'n/a')          ${dim}System monitor${reset}"
-echo "  ${green}✓${reset} tree            $(tree --version 2>/dev/null | awk '{print $2}')          ${dim}Directory tree${reset}"
-echo "  ${green}✓${reset} shellcheck      $(shellcheck --version 2>/dev/null | grep version: | awk '{print $2}')          ${dim}Shell linter${reset}"
+echo "  ${green}✓${reset} ripgrep         $(rg --version 2>/dev/null | head -1 | awk '{print $2}' || echo 'n/a')          ${dim}Fast search${reset}"
+echo "  ${green}✓${reset} bat             $(bat --version 2>/dev/null | awk '{print $2}' || echo 'n/a')          ${dim}Better cat${reset}"
+echo "  ${green}✓${reset} eza             $(eza --version 2>/dev/null | head -1 | awk '{print $2}' || echo 'n/a')          ${dim}Modern ls${reset}"
+echo "  ${green}✓${reset} fd              $(fd --version 2>/dev/null | awk '{print $2}' || echo 'n/a')          ${dim}Better find${reset}"
+echo "  ${green}✓${reset} jq              $(jq --version 2>/dev/null | tr -d 'jq-' || echo 'n/a')          ${dim}JSON processor${reset}"
+echo "  ${green}✓${reset} delta           $(delta --version 2>/dev/null | awk '{print $2}' || echo 'n/a')          ${dim}Better diffs${reset}"
+echo "  ${green}✓${reset} zoxide          $(zoxide --version 2>/dev/null | awk '{print $2}' || echo 'n/a')          ${dim}Smarter cd${reset}"
+echo "  ${green}✓${reset} btop            $(btop --version 2>/dev/null | head -1 | sed 's/\x1b\[[0-9;]*m//g' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo 'n/a')          ${dim}System monitor${reset}"
+echo "  ${green}✓${reset} tree            $(tree --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo 'n/a')          ${dim}Directory tree${reset}"
+echo "  ${green}✓${reset} shellcheck      $(shellcheck --version 2>/dev/null | grep version: | awk '{print $2}' || echo 'n/a')          ${dim}Shell linter${reset}"
 echo ""
 
 echo "${bold}  Apps${reset}"
@@ -261,11 +290,12 @@ echo ""
 echo "${bold}  Configs${reset}"
 echo "  ${dim}─────────────────────────────────────────${reset}"
 echo "  ${green}✓${reset} Shell           .zshrc, .zprofile, .zshenv, .aliases, .functions"
-echo "  ${green}✓${reset} Git             .gitconfig, .gitignore_global"
+echo "  ${green}✓${reset} Git             .gitconfig, .gitignore_global, .editorconfig"
 echo "  ${green}✓${reset} SSH             ~/.ssh/config"
 echo "  ${green}✓${reset} VS Code         settings.json, keybindings.json, ${dim}$(brew list --vscode 2>/dev/null | wc -l | tr -d ' ' || echo '25') extensions${reset}"
 echo "  ${green}✓${reset} Cursor          settings.json"
 echo "  ${green}✓${reset} GitHub CLI      config.yml"
+echo "  ${green}✓${reset} Ghostty         ~/.config/ghostty/config"
 if [[ "$_did_macos" == "true" ]]; then
   echo "  ${green}✓${reset} macOS           system preferences applied"
 fi

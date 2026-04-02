@@ -8,9 +8,10 @@ alias ~="cd ~"
 alias -- -="cd -"
 
 # ── Listings ────────────────────────────────────────────
-alias ll="ls -lAFh"
-alias la="ls -AF"
-alias lsd="ls -lF | grep --color=never '^d'"
+alias ll="eza -la --icons --git --group-directories-first"
+alias la="eza -a --icons --group-directories-first"
+alias lt="eza -la --icons --git --tree --level=2 --group-directories-first"
+alias lsd="eza -lD --icons"
 
 # ── Git ─────────────────────────────────────────────────
 alias gs="git status"

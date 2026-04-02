@@ -1,15 +1,3 @@
-# Sensitive files - review before committing
-.ssh/id_*
-.ssh/*_rsa*
-.gnupg/private-keys-v1.d/
-*.pem
-*.key
-.npmrc
-.git-credentials
-
-# Machine-local overrides (secrets, tokens, env vars)
-.extra
-
-# Large/temp files
+# Dotfiles repo ignore (this file is for the repo itself)
 .DS_Store
-*.log
+.extra

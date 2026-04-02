@@ -45,8 +45,18 @@ gopen() {
     echo "Not a git repository or no remote 'origin'"
     return 1
   fi
-  # Convert SSH URL to HTTPS
-  url="${url/git@github.com:/https://github.com/}"
+  # Convert SSH URL to HTTPS for any host
+  if [[ "$url" == git@* ]]; then
+    url="${url#git@}"           # strip git@
+    url="${url/.com:/.com/}"    # github.com:user/repo → github.com/user/repo
+    url="${url/.org:/.org/}"    # gitlab.org:user/repo → gitlab.org/user/repo
+    url="${url/.io:/.io/}"      # custom.io:user/repo  → custom.io/user/repo
+    # General fallback: replace first : with / if no / exists yet
+    if [[ "$url" != */* ]]; then
+      url="${url/://}"
+    fi
+    url="https://$url"
+  fi
   url="${url%.git}"
   open "$url"
 }

@@ -3,8 +3,15 @@ tap "anomalyco/tap"                           # Tap for opencode formula
 # Core dev tools
 brew "git"                                    # Distributed version control system
 brew "git-lfs"                                # Git extension for versioning large files
+brew "git-delta"                              # Better git diffs with syntax highlighting
 brew "gh"                                     # GitHub command-line tool
 brew "fzf"                                    # Command-line fuzzy finder
+brew "ripgrep"                                # Fast regex search tool (used by editors)
+brew "fd"                                     # Fast, user-friendly alternative to find
+brew "jq"                                     # Lightweight JSON processor
+brew "bat"                                    # Cat clone with syntax highlighting and git integration
+brew "eza"                                    # Modern replacement for ls
+brew "zoxide"                                 # Smarter cd that learns your habits
 brew "btop"                                   # Terminal-based resource monitor (CPU, RAM, disk, network)
 
 # AI
@@ -22,6 +29,8 @@ cask "cursor"                                 # AI-powered code editor (VS Code 
 cask "figma"                                  # Collaborative UI design tool
 cask "gcloud-cli"                             # Google Cloud SDK (gcloud, gsutil, bq)
 cask "ghostty"                                # GPU-accelerated terminal emulator
+cask "google-chrome"                          # Web browser
+cask "slack"                                  # Team messaging and collaboration
 cask "spotify"                                # Music streaming
 cask "visual-studio-code"                     # Code editor
 

@@ -220,6 +220,7 @@ Host $SSH_HOST_ALIAS
   AddKeysToAgent yes
   UseKeychain yes
   IdentityFile $WORK_KEY
+  IdentitiesOnly yes
 EOF
     ok "SSH alias '$SSH_HOST_ALIAS' added"
     info "Clone work repos as: git@github.com-work:org/repo.git"
@@ -236,6 +237,7 @@ Host $work_host
   AddKeysToAgent yes
   UseKeychain yes
   IdentityFile $WORK_KEY
+  IdentitiesOnly yes
 EOF
     ok "Host '$work_host' added"
   fi
@@ -334,11 +336,13 @@ if [[ "$REPLY" == "y" ]]; then
 
   ALIAS_LINE="alias codework=\"code --profile \\\"$vscode_profile\\\"\""
 
-  if grep -q "alias codework=" "$HOME/.zshrc" 2>/dev/null; then
-    ok "Alias 'codework' already exists"
+  if grep -q "alias codework=" "$HOME/.extra" 2>/dev/null; then
+    ok "Alias 'codework' already exists in ~/.extra"
   else
-    echo "$ALIAS_LINE" >> "$HOME/.zshrc"
-    ok "Added alias: codework"
+    # Ensure ~/.extra exists
+    touch "$HOME/.extra"
+    echo "$ALIAS_LINE" >> "$HOME/.extra"
+    ok "Added alias: codework → ~/.extra"
   fi
 else
   info "Skipped"
@@ -418,7 +422,7 @@ echo "  ${yellow}5${reset}  View your public key"
 echo "     ${dim}cat ${WORK_KEY/#$HOME/~}.pub${reset}"
 
 # VS Code
-if grep -q "alias codework=" "$HOME/.zshrc" 2>/dev/null; then
+if grep -q "alias codework=" "$HOME/.extra" 2>/dev/null; then
   echo "  ${yellow}6${reset}  Open VS Code with work profile"
   echo "     ${dim}codework .${reset}"
 fi
