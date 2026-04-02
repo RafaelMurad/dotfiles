@@ -23,8 +23,8 @@ That's it. The `setup` script handles everything:
 2. Installs Volta, Node LTS, pnpm, yarn, vercel, playwright-mcp, confluence-cli
 3. Installs Oh My Zsh
 4. Symlinks all configs (shell, git, SSH, VS Code, Cursor, gh)
-5. Generates SSH key and copies public key to clipboard
-6. Authenticates GitHub CLI
+5. Authenticates GitHub CLI (browser-based, no keys needed)
+6. Generates SSH key and uploads it to GitHub automatically
 7. Optionally applies macOS system preferences
 8. Optionally sets up a work profile
 

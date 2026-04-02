@@ -122,30 +122,35 @@ CURSOR_USER="$HOME/Library/Application Support/Cursor/User"
 mkdir -p "$CURSOR_USER"
 link_file "$DOTFILES_DIR/cursor/settings.json"     "$CURSOR_USER/settings.json"
 
-# ── 7. SSH key ──────────────────────────────────────────
-step 7 "SSH key"
-if [[ ! -f "$HOME/.ssh/id_ed25519" ]]; then
-  ssh-keygen -t ed25519 -C "rflmurad@gmail.com" -f "$HOME/.ssh/id_ed25519" -N ""
-  if command -v pbcopy &>/dev/null; then
-    pbcopy < "$HOME/.ssh/id_ed25519.pub"
-    ok "Generated — public key copied to clipboard"
-  else
-    ok "Generated"
-    info "Public key: $(cat "$HOME/.ssh/id_ed25519.pub")"
-  fi
-  info "Add it to https://github.com/settings/keys"
-else
-  skip "SSH key"
-fi
-
-# ── 8. GitHub CLI ────────────────────────────────────────
-step 8 "GitHub CLI auth"
+# ── 7. GitHub CLI ────────────────────────────────────────
+step 7 "GitHub CLI auth"
 if gh auth status &>/dev/null 2>&1; then
   skip "GitHub CLI"
 else
   info "Authenticate your personal GitHub account:"
   gh auth login
   ok "Authenticated"
+fi
+
+# ── 8. SSH key ──────────────────────────────────────────
+step 8 "SSH key"
+if [[ ! -f "$HOME/.ssh/id_ed25519" ]]; then
+  ssh-keygen -t ed25519 -C "rflmurad@gmail.com" -f "$HOME/.ssh/id_ed25519" -N ""
+  ok "Generated"
+
+  # Upload to GitHub if gh is authenticated
+  if gh auth status &>/dev/null 2>&1; then
+    gh ssh-key add "$HOME/.ssh/id_ed25519.pub" --title "$(scutil --get ComputerName 2>/dev/null || hostname)"
+    ok "Added to GitHub"
+  else
+    if command -v pbcopy &>/dev/null; then
+      pbcopy < "$HOME/.ssh/id_ed25519.pub"
+      info "Public key copied to clipboard"
+    fi
+    info "Add it to https://github.com/settings/keys"
+  fi
+else
+  skip "SSH key"
 fi
 
 # ── 9. macOS defaults ───────────────────────────────────
