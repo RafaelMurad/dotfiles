@@ -1,6 +1,9 @@
 #!/usr/bin/env zsh
 set -e
 
+# Capture script path at top level (zsh $0 inside functions returns the function name)
+_SCRIPT_PATH="$0"
+
 # ── Remote bootstrap ───────────────────────────────────
 # Supports: curl -fsSL https://raw.githubusercontent.com/RafaelMurad/dotfiles/main/setup | zsh
 # Wrapped in a function so the entire script is downloaded before execution
@@ -15,7 +18,7 @@ fi
 # Restore TTY if stdin was piped (e.g. curl | zsh)
 [[ ! -t 0 ]] && exec < /dev/tty
 
-DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
+DOTFILES_DIR="$(cd "$(dirname "$_SCRIPT_PATH")" && pwd)"
 
 # Colors
 bold="\033[1m"
