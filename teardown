@@ -1,0 +1,450 @@
+#!/usr/bin/env zsh
+# Reverse everything `setup` installed.
+# Run: ~/dotfiles/teardown
+# Each section prompts for confirmation — nothing is deleted silently.
+
+DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Colors
+bold="\033[1m"
+dim="\033[2m"
+green="\033[32m"
+blue="\033[34m"
+yellow="\033[33m"
+red="\033[31m"
+reset="\033[0m"
+
+step()    { echo "\n${bold}${blue}[$1]${reset} ${bold}$2${reset}" }
+ok()      { echo "  ${green}✓${reset} $1" }
+info()    { echo "  ${yellow}->>${reset} $1" }
+warn()    { echo "  ${red}!${reset} $1" }
+removed() { echo "  ${red}x${reset} $1" }
+
+confirm() {
+  echo ""
+  read -q "REPLY?  $1 (y/n) " || true
+  echo ""
+  [[ "$REPLY" == "y" ]]
+}
+
+echo ""
+echo "${bold}${red}  Dotfiles Teardown${reset}"
+echo "${dim}  This will undo what ~/dotfiles/setup installed.${reset}"
+echo "${dim}  Each step asks for confirmation — nothing happens silently.${reset}"
+echo ""
+
+if ! confirm "Ready to start?"; then
+  echo "  Aborted."
+  exit 0
+fi
+
+# ── 1. Remove symlinks / restore backups ────────────────
+step 1 "Symlinks"
+
+unlink_file() {
+  local dest="$1"
+  if [[ -L "$dest" ]]; then
+    rm "$dest"
+    # Restore backup if one exists
+    if [[ -f "${dest}.bak" ]]; then
+      mv "${dest}.bak" "$dest"
+      removed "$(basename "$dest") (restored backup)"
+    else
+      removed "$(basename "$dest")"
+    fi
+  elif [[ -f "$dest" ]]; then
+    info "$(basename "$dest") is not a symlink — skipped"
+  else
+    info "$(basename "$dest") does not exist — skipped"
+  fi
+}
+
+if confirm "Remove dotfile symlinks and restore backups?"; then
+  unlink_file "$HOME/.zshrc"
+  unlink_file "$HOME/.zprofile"
+  unlink_file "$HOME/.zshenv"
+  unlink_file "$HOME/.gitconfig"
+  unlink_file "$HOME/.aliases"
+  unlink_file "$HOME/.functions"
+  unlink_file "$HOME/.gitignore_global"
+  unlink_file "$HOME/.ssh/config"
+  unlink_file "$HOME/.config/gh/config.yml"
+
+  # Editor settings
+  unlink_file "$HOME/Library/Application Support/Code/User/settings.json"
+  unlink_file "$HOME/Library/Application Support/Code/User/keybindings.json"
+  unlink_file "$HOME/Library/Application Support/Cursor/User/settings.json"
+
+  ok "Symlinks removed"
+else
+  info "Skipped"
+fi
+
+# ── 2. Work profile ────────────────────────────────────
+step 2 "Work profile"
+
+_has_work=false
+[[ -f "$HOME/.gitconfig-work" ]] && _has_work=true
+[[ -f "$HOME/.ssh/id_ed25519_work" ]] && _has_work=true
+
+if $_has_work; then
+  if confirm "Remove work profile (SSH key, gitconfig-work, SSH config entries)?"; then
+    # Remove work SSH key
+    if [[ -f "$HOME/.ssh/id_ed25519_work" ]]; then
+      rm -f "$HOME/.ssh/id_ed25519_work" "$HOME/.ssh/id_ed25519_work.pub"
+      removed "Work SSH key"
+    fi
+
+    # Remove gitconfig-work
+    if [[ -f "$HOME/.gitconfig-work" ]]; then
+      rm -f "$HOME/.gitconfig-work"
+      removed "~/.gitconfig-work"
+    fi
+
+    # Remove work SSH host alias from config (if it exists and config is not a symlink)
+    if [[ -f "$HOME/.ssh/config" && ! -L "$HOME/.ssh/config" ]]; then
+      # Remove github.com-work block (5 lines starting with "Host github.com-work")
+      if grep -q "Host github.com-work" "$HOME/.ssh/config" 2>/dev/null; then
+        sed -i '' '/# Work profile/,/IdentityFile.*work/d' "$HOME/.ssh/config" 2>/dev/null
+        # Clean up blank lines left behind
+        sed -i '' '/^$/N;/^\n$/d' "$HOME/.ssh/config" 2>/dev/null
+        removed "SSH config work entry"
+      fi
+    fi
+
+    # Remove includeIf block from gitconfig (if it exists and is not a symlink)
+    if [[ -f "$HOME/.gitconfig" && ! -L "$HOME/.gitconfig" ]]; then
+      if grep -q 'gitconfig-work' "$HOME/.gitconfig" 2>/dev/null; then
+        sed -i '' '/# Work profile/,/path = ~\/.gitconfig-work/d' "$HOME/.gitconfig" 2>/dev/null
+        sed -i '' '/^$/N;/^\n$/d' "$HOME/.gitconfig" 2>/dev/null
+        removed "includeIf block from .gitconfig"
+      fi
+    fi
+
+    # Remove codework alias from .zshrc (if it exists and is not a symlink)
+    if [[ -f "$HOME/.zshrc" && ! -L "$HOME/.zshrc" ]]; then
+      if grep -q 'alias codework=' "$HOME/.zshrc" 2>/dev/null; then
+        sed -i '' '/alias codework=/d' "$HOME/.zshrc" 2>/dev/null
+        removed "codework alias from .zshrc"
+      fi
+    fi
+
+    ok "Work profile removed"
+  else
+    info "Skipped"
+  fi
+else
+  info "No work profile found — skipped"
+fi
+
+# ── 3. SSH key (personal) ──────────────────────────────
+step 3 "SSH key (personal)"
+
+if [[ -f "$HOME/.ssh/id_ed25519" ]]; then
+  if confirm "Delete personal SSH key (~/.ssh/id_ed25519)?"; then
+    # Remove from GitHub first
+    if command -v gh &>/dev/null && gh auth status &>/dev/null 2>&1; then
+      _key_fingerprint=$(ssh-keygen -lf "$HOME/.ssh/id_ed25519.pub" 2>/dev/null | awk '{print $2}')
+      if [[ -n "$_key_fingerprint" ]]; then
+        _key_id=$(gh ssh-key list 2>/dev/null | grep "$_key_fingerprint" | awk '{print $NF}')
+        if [[ -n "$_key_id" ]]; then
+          gh ssh-key delete "$_key_id" --yes 2>/dev/null && removed "SSH key from GitHub"
+        fi
+      fi
+    fi
+    rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/id_ed25519.pub"
+    removed "~/.ssh/id_ed25519"
+  else
+    info "Skipped"
+  fi
+else
+  info "No personal SSH key found — skipped"
+fi
+
+# ── 4. GitHub CLI auth ──────────────────────────────────
+step 4 "GitHub CLI"
+
+if command -v gh &>/dev/null && gh auth status &>/dev/null 2>&1; then
+  if confirm "Log out of GitHub CLI?"; then
+    gh auth logout 2>/dev/null
+    removed "gh auth"
+  else
+    info "Skipped"
+  fi
+else
+  info "Not authenticated — skipped"
+fi
+
+# ── 5. Oh My Zsh ───────────────────────────────────────
+step 5 "Oh My Zsh"
+
+if [[ -d "$HOME/.oh-my-zsh" ]]; then
+  if confirm "Uninstall Oh My Zsh?"; then
+    # Use the official uninstaller non-interactively
+    env ZSH="$HOME/.oh-my-zsh" sh "$HOME/.oh-my-zsh/tools/uninstall.sh" --unattended 2>/dev/null || {
+      rm -rf "$HOME/.oh-my-zsh"
+    }
+    removed "Oh My Zsh"
+  else
+    info "Skipped"
+  fi
+else
+  info "Not installed — skipped"
+fi
+
+# ── 6. Volta + Node ────────────────────────────────────
+step 6 "Volta + Node"
+
+if [[ -d "$HOME/.volta" ]]; then
+  if confirm "Remove Volta and all Node versions/globals (pnpm, yarn, etc.)?"; then
+    rm -rf "$HOME/.volta"
+    removed "~/.volta (Node, pnpm, yarn, vercel, etc.)"
+  else
+    info "Skipped"
+  fi
+else
+  info "Not installed — skipped"
+fi
+
+# ── 7. Brewfile packages ───────────────────────────────
+step 7 "Homebrew packages"
+
+if command -v brew &>/dev/null; then
+  echo ""
+  echo "  ${dim}Installed via Brewfile:${reset}"
+
+  # List what's in the Brewfile
+  _formulae=()
+  _casks=()
+  _extensions=()
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^brew\ \"(.+)\" ]]; then
+      _formulae+=("${match[1]}")
+    elif [[ "$line" =~ ^cask\ \"(.+)\" ]]; then
+      _casks+=("${match[1]}")
+    elif [[ "$line" =~ ^vscode\ \"(.+)\" ]]; then
+      _extensions+=("${match[1]}")
+    fi
+  done < "$DOTFILES_DIR/Brewfile"
+
+  echo "  ${dim}  Formulae: ${(j:, :)_formulae}${reset}"
+  echo "  ${dim}  Casks:    ${(j:, :)_casks}${reset}"
+  echo "  ${dim}  VS Code:  ${#_extensions} extensions${reset}"
+
+  if confirm "Uninstall these Homebrew formulae and casks?"; then
+    for pkg in "${_formulae[@]}"; do
+      if brew list --formula "$pkg" &>/dev/null; then
+        brew uninstall --formula "$pkg" 2>/dev/null && removed "$pkg" || warn "Failed to uninstall $pkg"
+      fi
+    done
+    for pkg in "${_casks[@]}"; do
+      if brew list --cask "$pkg" &>/dev/null; then
+        brew uninstall --cask "$pkg" 2>/dev/null && removed "$pkg" || warn "Failed to uninstall $pkg"
+      fi
+    done
+    ok "Homebrew packages removed"
+  else
+    info "Skipped formulae/casks"
+  fi
+
+  if confirm "Uninstall VS Code extensions from Brewfile?"; then
+    for ext in "${_extensions[@]}"; do
+      code --uninstall-extension "$ext" 2>/dev/null && removed "$ext"
+    done
+    ok "VS Code extensions removed"
+  else
+    info "Skipped VS Code extensions"
+  fi
+
+  # Remove the tap
+  if confirm "Remove anomalyco/tap?"; then
+    brew untap anomalyco/tap 2>/dev/null && removed "anomalyco/tap"
+  else
+    info "Skipped"
+  fi
+else
+  info "Homebrew not installed — skipped"
+fi
+
+# ── 8. Homebrew itself ──────────────────────────────────
+step 8 "Homebrew"
+
+if command -v brew &>/dev/null; then
+  if confirm "Uninstall Homebrew entirely? (this removes ALL brew packages)"; then
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
+    removed "Homebrew"
+  else
+    info "Skipped"
+  fi
+else
+  info "Not installed — skipped"
+fi
+
+# ── 9. macOS defaults ──────────────────────────────────
+step 9 "macOS defaults"
+
+echo ""
+echo "  ${dim}This resets the specific preference domains we modified${reset}"
+echo "  ${dim}back to macOS factory defaults (not your prior settings).${reset}"
+
+if confirm "Reset macOS preferences we changed?"; then
+  # General UI
+  defaults delete NSGlobalDomain NSNavPanelExpandedStateForSaveMode 2>/dev/null
+  defaults delete NSGlobalDomain NSNavPanelExpandedStateForSaveMode2 2>/dev/null
+  defaults delete NSGlobalDomain PMPrintingExpandedStateForPrint 2>/dev/null
+  defaults delete NSGlobalDomain PMPrintingExpandedStateForPrint2 2>/dev/null
+  defaults delete NSGlobalDomain NSDocumentSaveNewDocumentsToCloud 2>/dev/null
+  defaults delete com.apple.CrashReporter DialogType 2>/dev/null
+  defaults delete NSGlobalDomain NSAutomaticCapitalizationEnabled 2>/dev/null
+  defaults delete NSGlobalDomain NSAutomaticDashSubstitutionEnabled 2>/dev/null
+  defaults delete NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled 2>/dev/null
+  defaults delete NSGlobalDomain NSAutomaticSpellingCorrectionEnabled 2>/dev/null
+  defaults delete NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled 2>/dev/null
+  removed "General UI defaults"
+
+  # Keyboard
+  defaults delete NSGlobalDomain KeyRepeat 2>/dev/null
+  defaults delete NSGlobalDomain InitialKeyRepeat 2>/dev/null
+  defaults delete NSGlobalDomain ApplePressAndHoldEnabled 2>/dev/null
+  removed "Keyboard defaults"
+
+  # Trackpad
+  defaults delete com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking 2>/dev/null
+  defaults -currentHost delete NSGlobalDomain com.apple.mouse.tapBehavior 2>/dev/null
+  defaults delete NSGlobalDomain com.apple.mouse.tapBehavior 2>/dev/null
+  removed "Trackpad defaults"
+
+  # Finder
+  defaults delete NSGlobalDomain AppleShowAllExtensions 2>/dev/null
+  defaults delete com.apple.finder AppleShowAllFiles 2>/dev/null
+  defaults delete com.apple.finder ShowPathbar 2>/dev/null
+  defaults delete com.apple.finder ShowStatusBar 2>/dev/null
+  defaults delete com.apple.finder _FXSortFoldersFirst 2>/dev/null
+  defaults delete com.apple.finder FXDefaultSearchScope 2>/dev/null
+  defaults delete com.apple.finder FXEnableExtensionChangeWarning 2>/dev/null
+  defaults delete com.apple.desktopservices DSDontWriteNetworkStores 2>/dev/null
+  defaults delete com.apple.desktopservices DSDontWriteUSBStores 2>/dev/null
+  defaults delete com.apple.finder FXPreferredViewStyle 2>/dev/null
+  defaults delete com.apple.finder NewWindowTarget 2>/dev/null
+  defaults delete com.apple.finder NewWindowTargetPath 2>/dev/null
+  removed "Finder defaults"
+
+  # Dock
+  defaults delete com.apple.dock tilesize 2>/dev/null
+  defaults delete com.apple.dock mineffect 2>/dev/null
+  defaults delete com.apple.dock autohide 2>/dev/null
+  defaults delete com.apple.dock autohide-delay 2>/dev/null
+  defaults delete com.apple.dock autohide-time-modifier 2>/dev/null
+  defaults delete com.apple.dock show-recents 2>/dev/null
+  defaults delete com.apple.dock mru-spaces 2>/dev/null
+  defaults delete com.apple.dock expose-group-apps 2>/dev/null
+  removed "Dock defaults"
+
+  # Screenshots
+  defaults delete com.apple.screencapture location 2>/dev/null
+  defaults delete com.apple.screencapture type 2>/dev/null
+  defaults delete com.apple.screencapture disable-shadow 2>/dev/null
+  removed "Screenshot defaults"
+
+  # Safari
+  _safari_domain="com.apple.Safari"
+  _safari_container="$HOME/Library/Containers/com.apple.Safari/Data/Library/Preferences/com.apple.Safari"
+  [[ -d "$HOME/Library/Containers/com.apple.Safari" ]] && _safari_domain="$_safari_container"
+  defaults delete "$_safari_domain" IncludeDevelopMenu 2>/dev/null
+  defaults delete "$_safari_domain" WebKitDeveloperExtrasEnabledPreferenceKey 2>/dev/null
+  defaults delete "$_safari_domain" com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled 2>/dev/null
+  defaults delete "$_safari_domain" SendDoNotTrackHTTPHeader 2>/dev/null
+  defaults delete "$_safari_domain" ShowFullURLInSmartSearchField 2>/dev/null
+  removed "Safari defaults"
+
+  # Activity Monitor
+  defaults delete com.apple.ActivityMonitor ShowCategory 2>/dev/null
+  defaults delete com.apple.ActivityMonitor SortColumn 2>/dev/null
+  defaults delete com.apple.ActivityMonitor SortDirection 2>/dev/null
+  removed "Activity Monitor defaults"
+
+  # TextEdit
+  defaults delete com.apple.TextEdit RichText 2>/dev/null
+  defaults delete com.apple.TextEdit PlainTextEncoding 2>/dev/null
+  defaults delete com.apple.TextEdit PlainTextEncodingForWrite 2>/dev/null
+  removed "TextEdit defaults"
+
+  # Security
+  defaults delete com.apple.screensaver askForPassword 2>/dev/null
+  defaults delete com.apple.screensaver askForPasswordDelay 2>/dev/null
+  removed "Security defaults"
+
+  # Disk Images
+  defaults delete com.apple.frameworks.diskimages skip-verify 2>/dev/null
+  defaults delete com.apple.frameworks.diskimages skip-verify-locked 2>/dev/null
+  defaults delete com.apple.frameworks.diskimages skip-verify-remote 2>/dev/null
+  removed "Disk Image defaults"
+
+  # Restart affected apps
+  echo ""
+  echo "  ${dim}Restarting affected apps...${reset}"
+  for app in "Finder" "Dock" "SystemUIServer" "cfprefsd"; do
+    killall "$app" &>/dev/null || true
+  done
+  ok "macOS defaults reset to factory"
+else
+  info "Skipped"
+fi
+
+# ── 10. Cloned repos ───────────────────────────────────
+step 10 "Cloned repos"
+
+if [[ -d "$HOME/code" ]]; then
+  _repo_count=$(find "$HOME/code" -maxdepth 1 -type d | wc -l | tr -d ' ')
+  ((_repo_count--)) # subtract the parent directory itself
+  echo ""
+  warn "~/code contains $_repo_count directories"
+  warn "These may have uncommitted changes!"
+  if confirm "Delete ALL repos in ~/code? (DANGEROUS)"; then
+    read -q "REPLY?  Are you REALLY sure? This cannot be undone. (y/n) " || true
+    echo ""
+    if [[ "$REPLY" == "y" ]]; then
+      rm -rf "$HOME/code"
+      removed "~/code"
+    else
+      info "Aborted"
+    fi
+  else
+    info "Skipped"
+  fi
+else
+  info "~/code does not exist — skipped"
+fi
+
+# ── 11. Dotfiles repo ──────────────────────────────────
+step 11 "Dotfiles repo"
+
+echo ""
+warn "This will delete ~/dotfiles itself."
+warn "You can always re-clone from github.com/RafaelMurad/dotfiles"
+
+if confirm "Delete ~/dotfiles?"; then
+  read -q "REPLY?  Are you REALLY sure? (y/n) " || true
+  echo ""
+  if [[ "$REPLY" == "y" ]]; then
+    rm -rf "$HOME/dotfiles"
+    removed "~/dotfiles"
+  else
+    info "Aborted"
+  fi
+else
+  info "Skipped"
+fi
+
+# ── Done ────────────────────────────────────────────────
+echo ""
+echo "${green}${bold}  Teardown complete!${reset}"
+echo ""
+echo "${bold}  What was NOT removed${reset}"
+echo "  ${dim}---------------------------------------------${reset}"
+echo "  ${dim}Xcode Command Line Tools (other things depend on them)${reset}"
+echo "  ${dim}~/Screenshots directory (may contain your files)${reset}"
+echo "  ${dim}~/.extra file (contains your secrets)${reset}"
+echo ""
+echo "${dim}  Restart your terminal or run: exec zsh${reset}"
+echo ""
