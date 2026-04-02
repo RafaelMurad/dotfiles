@@ -16,13 +16,48 @@ ok()   { echo "  ${green}✓${reset} $1" }
 info() { echo "  ${yellow}→${reset} $1" }
 ask()  { echo -n "  ${blue}?${reset} $1" }
 
+# Track what was configured for the final summary
+_completed_steps=()
+
+checkpoint() {
+  _completed_steps+=("$1")
+  echo ""
+  echo "  ${dim}─────────────────────────────────────────${reset}"
+  read -q "REPLY?  Continue to next step? (y/n) " || true
+  echo ""
+  if [[ "$REPLY" != "y" ]]; then
+    _show_summary
+    exit 0
+  fi
+  echo ""
+}
+
+_show_summary() {
+  echo ""
+  if (( ${#_completed_steps[@]} > 0 )); then
+    echo "${green}${bold}  Work profile — progress saved${reset}"
+    echo ""
+    echo "${bold}  Completed${reset}"
+    echo "  ${dim}─────────────────────────────────────────${reset}"
+    for _s in "${_completed_steps[@]}"; do
+      echo "  ${green}✓${reset} $_s"
+    done
+  else
+    echo "${yellow}${bold}  Work profile — nothing was configured${reset}"
+  fi
+  echo ""
+  echo "${dim}  Run ${reset}${bold}~/dotfiles/setup-work-profile${reset}${dim} anytime to continue.${reset}"
+  echo "${dim}  Restart your terminal: exec zsh${reset}"
+  echo ""
+}
+
 echo ""
 echo "${bold}  Work Profile Setup${reset}"
 echo "${dim}  Separate identity for work repos${reset}"
 echo ""
 
 # ── 1. Identity ─────────────────────────────────────────
-echo "${bold}  Identity${reset}"
+echo "${bold}  [1/6] Identity${reset}"
 
 DEFAULT_NAME=$(git config --global user.name 2>/dev/null || echo "Rafael Murad")
 
@@ -43,10 +78,11 @@ mkdir -p "$work_dir"
 echo ""
 ok "$work_name <$work_email>"
 ok "Projects: $work_dir"
-echo ""
+
+checkpoint "Identity: $work_name <$work_email>, dir: ${work_dir/#$HOME/~}"
 
 # ── 2. SSH key ───────────────────────────────────────────
-echo "${bold}  SSH Key${reset}"
+echo "${bold}  [2/6] SSH Key${reset}"
 
 WORK_KEY="$HOME/.ssh/id_ed25519_work"
 _key_resolved=false
@@ -112,10 +148,11 @@ if [[ "$_key_resolved" != "true" ]]; then
   info "Add this key to your work Git host, then press Enter"
   read -s
 fi
-echo ""
+
+checkpoint "SSH key: ${WORK_KEY/#$HOME/~}"
 
 # ── 3. Git host ─────────────────────────────────────────
-echo "${bold}  Git Host${reset}"
+echo "${bold}  [3/6] Git Host${reset}"
 
 echo ""
 echo "    ${yellow}1${reset}  GitHub (github.com)"
@@ -203,10 +240,11 @@ EOF
     ok "Host '$work_host' added"
   fi
 fi
-echo ""
+
+checkpoint "Git host: $_provider ($work_host)"
 
 # ── 4. Git config ────────────────────────────────────────
-echo "${bold}  Git Config${reset}"
+echo "${bold}  [4/6] Git Config${reset}"
 
 cat > "$HOME/.gitconfig-work" << EOF
 [user]
@@ -228,13 +266,15 @@ EOF
   ok "Added includeIf for $work_dir_pattern"
 fi
 info "Repos in $work_dir/ will auto-use work identity"
-echo ""
+
+checkpoint "Git config: repos in ${work_dir/#$HOME/~}/ use work identity"
 
 # ── 5. CLI auth ──────────────────────────────────────────
+echo "${bold}  [5/6] CLI Auth${reset}"
 
 case "$_provider" in
   github|github-enterprise)
-    echo "${bold}  GitHub CLI${reset}"
+    echo ""
     read -q "REPLY?  Authenticate gh with $work_host? (y/n) " || true
     echo ""
     if [[ "$REPLY" == "y" ]]; then
@@ -245,8 +285,6 @@ case "$_provider" in
     fi
     ;;
   gitlab)
-    echo "${bold}  GitLab CLI${reset}"
-
     # Install glab if not present
     if ! command -v glab &>/dev/null; then
       info "glab (GitLab CLI) is not installed"
@@ -261,31 +299,32 @@ case "$_provider" in
     fi
 
     if command -v glab &>/dev/null; then
+      echo ""
       read -q "REPLY?  Authenticate glab with $work_host? (y/n) " || true
       echo ""
       if [[ "$REPLY" == "y" ]]; then
         glab auth login --hostname "$work_host"
         ok "Authenticated with glab"
       else
-        info "Skipped — run ${dim}glab auth login${reset} anytime"
+        info "Skipped — run ${dim}glab auth login --hostname $work_host${reset} anytime"
       fi
     fi
     ;;
   bitbucket)
-    echo "${bold}  Bitbucket${reset}"
     info "No official Bitbucket CLI — SSH key is your auth method"
     info "Add your public key at: https://$work_host/account/settings/ssh-keys/"
     ;;
   *)
-    echo "${bold}  CLI Auth${reset}"
     info "No known CLI for $work_host — SSH key is your auth method"
     ;;
 esac
-echo ""
+
+checkpoint "CLI auth ($_provider)"
 
 # ── 6. VS Code alias (optional) ─────────────────────────
-echo "${bold}  VS Code${reset}"
+echo "${bold}  [6/6] VS Code${reset}"
 
+echo ""
 read -q "REPLY?  Create VS Code work alias? (y/n) " || true
 echo ""
 if [[ "$REPLY" == "y" ]]; then
@@ -306,8 +345,16 @@ else
 fi
 
 # ── Summary ──────────────────────────────────────────────
+_completed_steps+=("VS Code alias")
+
 echo ""
 echo "${green}${bold}  Work profile ready!${reset}"
+echo ""
+echo "${bold}  Completed${reset}"
+echo "  ${dim}─────────────────────────────────────────${reset}"
+for _s in "${_completed_steps[@]}"; do
+  echo "  ${green}✓${reset} $_s"
+done
 echo ""
 echo "${dim}  $work_name <$work_email>"
 echo "  Directory: $work_dir"
@@ -321,23 +368,16 @@ case "$_provider" in
     echo "  Clone work repos with:"
     echo "  ${bold}git clone git@github.com-work:org/repo.git $work_dir/repo${reset}"
     ;;
-  github-enterprise)
-    echo "  Clone work repos with:"
-    echo "  ${bold}git clone git@$work_host:org/repo.git $work_dir/repo${reset}"
-    ;;
-  gitlab)
-    echo "  Clone work repos with:"
-    echo "  ${bold}git clone git@$work_host:org/repo.git $work_dir/repo${reset}"
-    ;;
-  bitbucket)
-    echo "  Clone work repos with:"
-    echo "  ${bold}git clone git@$work_host:org/repo.git $work_dir/repo${reset}"
-    ;;
   *)
     echo "  Clone work repos with:"
     echo "  ${bold}git clone git@$work_host:org/repo.git $work_dir/repo${reset}"
     ;;
 esac
+echo ""
+
+echo "  ${dim}─────────────────────────────────────────${reset}"
+read -q "REPLY?  All done. Press any key to exit. " || true
+echo ""
 echo ""
 echo "${dim}  Restart your terminal: exec zsh${reset}"
 echo ""
