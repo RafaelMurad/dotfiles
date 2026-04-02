@@ -162,7 +162,7 @@ fi
 # ── 9. macOS defaults ───────────────────────────────────
 step 9 "macOS defaults"
 echo ""
-read -q "REPLY?  Apply macOS system preferences? (y/n) "
+read -q "REPLY?  Apply macOS system preferences? (y/n) " || true
 echo ""
 if [[ "$REPLY" == "y" ]]; then
   "$DOTFILES_DIR/.macos"
@@ -173,7 +173,7 @@ fi
 # ── 10. Work profile ────────────────────────────────────
 step 10 "Work profile"
 echo ""
-read -q "REPLY?  Set up a work profile now? (y/n) "
+read -q "REPLY?  Set up a work profile now? (y/n) " || true
 echo ""
 if [[ "$REPLY" == "y" ]]; then
   "$DOTFILES_DIR/setup-work-profile"
