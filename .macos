@@ -2,7 +2,7 @@
 # macOS defaults — opinionated system preferences
 # Run: ./.macos
 # Inspired by mathiasbynens/dotfiles, driesvints/dotfiles
-set -e
+# Note: no set -e — some defaults commands fail on certain macOS versions
 
 bold="\033[1m"
 dim="\033[2m"
@@ -203,18 +203,23 @@ ok "No shadow"
 # ── Safari ──────────────────────────────────────────────
 section "Safari"
 
+# Safari prefs are sandboxed on modern macOS — write to container if it exists
+_safari_domain="com.apple.Safari"
+_safari_container="$HOME/Library/Containers/com.apple.Safari/Data/Library/Preferences/com.apple.Safari"
+[[ -d "$HOME/Library/Containers/com.apple.Safari" ]] && _safari_domain="$_safari_container"
+
 # Enable Develop menu and Web Inspector
-defaults write com.apple.Safari IncludeDevelopMenu -bool true
-defaults write com.apple.Safari WebKitDeveloperExtrasEnabledPreferenceKey -bool true
-defaults write com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled -bool true
+defaults write "$_safari_domain" IncludeDevelopMenu -bool true 2>/dev/null
+defaults write "$_safari_domain" WebKitDeveloperExtrasEnabledPreferenceKey -bool true 2>/dev/null
+defaults write "$_safari_domain" com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled -bool true 2>/dev/null
 ok "Develop menu + Web Inspector"
 
 # Enable Do Not Track
-defaults write com.apple.Safari SendDoNotTrackHTTPHeader -bool true
+defaults write "$_safari_domain" SendDoNotTrackHTTPHeader -bool true 2>/dev/null
 ok "Do Not Track"
 
 # Show full URL in address bar
-defaults write com.apple.Safari ShowFullURLInSmartSearchField -bool true
+defaults write "$_safari_domain" ShowFullURLInSmartSearchField -bool true 2>/dev/null
 ok "Show full URL"
 
 # ── Activity Monitor ────────────────────────────────────
