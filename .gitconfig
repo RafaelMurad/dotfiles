@@ -35,6 +35,6 @@
 	process = git-lfs filter-process
 	required = true
 
-# Work profile override (added by setup-work-profile.sh):
-# [includeIf "gitdir:~/work/"]
-#     path = ~/.gitconfig-work
+# Machine-local overrides (work profile, etc.)
+[include]
+	path = ~/.gitconfig.local

@@ -40,3 +40,4 @@ fi
 
 # Local binaries
 [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
+alias cc='claude'

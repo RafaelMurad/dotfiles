@@ -103,24 +103,16 @@ if $_has_work; then
       removed "~/.gitconfig-work"
     fi
 
-    # Remove work SSH host alias from config (if it exists and config is not a symlink)
-    if [[ -f "$HOME/.ssh/config" && ! -L "$HOME/.ssh/config" ]]; then
-      # Remove github.com-work block (5 lines starting with "Host github.com-work")
-      if grep -q "Host github.com-work" "$HOME/.ssh/config" 2>/dev/null; then
-        sed -i '' '/# Work profile/,/IdentityFile.*work/d' "$HOME/.ssh/config" 2>/dev/null
-        # Clean up blank lines left behind
-        sed -i '' '/^$/N;/^\n$/d' "$HOME/.ssh/config" 2>/dev/null
-        removed "SSH config work entry"
-      fi
+    # Remove work SSH config
+    if [[ -f "$HOME/.ssh/config.d/work" ]]; then
+      rm -f "$HOME/.ssh/config.d/work"
+      removed "~/.ssh/config.d/work"
     fi
 
-    # Remove includeIf block from gitconfig (if it exists and is not a symlink)
-    if [[ -f "$HOME/.gitconfig" && ! -L "$HOME/.gitconfig" ]]; then
-      if grep -q 'gitconfig-work' "$HOME/.gitconfig" 2>/dev/null; then
-        sed -i '' '/# Work profile/,/path = ~\/.gitconfig-work/d' "$HOME/.gitconfig" 2>/dev/null
-        sed -i '' '/^$/N;/^\n$/d' "$HOME/.gitconfig" 2>/dev/null
-        removed "includeIf block from .gitconfig"
-      fi
+    # Remove gitconfig.local (work includeIf)
+    if [[ -f "$HOME/.gitconfig.local" ]]; then
+      rm -f "$HOME/.gitconfig.local"
+      removed "~/.gitconfig.local"
     fi
 
     # Remove codework alias from .extra (if it exists)

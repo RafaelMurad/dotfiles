@@ -203,17 +203,18 @@ esac
 
 ok "Provider: $_provider ($work_host)"
 
-SSH_CONFIG="$HOME/.ssh/config"
+SSH_CONFIG_DIR="$HOME/.ssh/config.d"
+SSH_WORK_CONFIG="$SSH_CONFIG_DIR/work"
+mkdir -p "$SSH_CONFIG_DIR"
 
 # github.com needs an alias since personal already uses it
 if [[ "$work_host" == "github.com" ]]; then
   SSH_HOST_ALIAS="github.com-work"
 
-  if grep -q "Host $SSH_HOST_ALIAS" "$SSH_CONFIG" 2>/dev/null; then
+  if grep -q "Host $SSH_HOST_ALIAS" "$SSH_WORK_CONFIG" 2>/dev/null; then
     ok "SSH alias '$SSH_HOST_ALIAS' already configured"
   else
-    cat >> "$SSH_CONFIG" << EOF
-
+    cat > "$SSH_WORK_CONFIG" << EOF
 # Work profile (github.com via alias)
 Host $SSH_HOST_ALIAS
   HostName github.com
@@ -226,12 +227,11 @@ EOF
     info "Clone work repos as: git@github.com-work:org/repo.git"
   fi
 else
-  if grep -q "Host $work_host" "$SSH_CONFIG" 2>/dev/null; then
+  if grep -q "Host $work_host" "$SSH_WORK_CONFIG" 2>/dev/null; then
     ok "Host '$work_host' already configured"
   else
     ssh-keyscan -H "$work_host" >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
-    cat >> "$SSH_CONFIG" << EOF
-
+    cat > "$SSH_WORK_CONFIG" << EOF
 # Work profile
 Host $work_host
   AddKeysToAgent yes
@@ -256,11 +256,10 @@ EOF
 ok "Created ~/.gitconfig-work"
 
 work_dir_pattern="${work_dir/#$HOME/~}/"
-if grep -q "gitdir:${work_dir_pattern}" "$HOME/.gitconfig" 2>/dev/null; then
+if grep -q "gitdir:${work_dir_pattern}" "$HOME/.gitconfig.local" 2>/dev/null; then
   ok "includeIf already configured"
 else
-  cat >> "$HOME/.gitconfig" << EOF
-
+  cat >> "$HOME/.gitconfig.local" << EOF
 # Work profile
 [includeIf "gitdir:${work_dir_pattern}"]
     path = ~/.gitconfig-work
@@ -339,7 +338,6 @@ if [[ "$REPLY" == "y" ]]; then
   if grep -q "alias codework=" "$HOME/.extra" 2>/dev/null; then
     ok "Alias 'codework' already exists in ~/.extra"
   else
-    # Ensure ~/.extra exists
     touch "$HOME/.extra"
     echo "$ALIAS_LINE" >> "$HOME/.extra"
     ok "Added alias: codework → ~/.extra"

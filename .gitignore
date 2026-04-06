@@ -1,3 +1,4 @@
 # Dotfiles repo ignore (this file is for the repo itself)
 .DS_Store
 .extra
+.ssh/config.d/
